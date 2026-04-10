@@ -2,49 +2,68 @@ import streamlit as st
 from groq import Groq
 import tools
 
-# --- 1. SECURE CONNECTION ---
+# --- SETUP ---
 try:
-    # This looks for the key you pasted in Streamlit Advanced Settings
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-except Exception as e:
-    st.error("API Key missing or invalid. Check your Streamlit Secrets.")
+except:
+    st.error("Missing GROQ_API_KEY in Secrets.")
     st.stop()
 
-st.set_page_config(page_title="AEGIS GLOBAL", page_icon="💠")
+st.set_page_config(page_title="AEGIS GLOBAL", page_icon="💠", layout="wide")
 
-# Initialize memory if it's the first time loading
+# Persistent Memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-st.title("💠 AEGIS GLOBAL : NODE 01")
+# --- STARK INDUSTRIES UI ---
+st.markdown("""
+    <style>
+    .stApp { background: #050a10; color: #00d4ff; }
+    .stChatMessage { border: 1px solid #1e3a5f; border-radius: 15px; background: #0a192f; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+st.title("💠 AEGIS GLOBAL : CORE")
+st.sidebar.title("🎛️ SYSTEM STATUS")
+st.sidebar.success("✅ Neural Link: Stable")
+st.sidebar.info("Model: Llama-3.1-8b-instant")
 
-# --- 2. INPUT HANDLING ---
-if prompt := st.chat_input("Command..."):
+# Display History
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# --- INTERACTION LOOP ---
+if prompt := st.chat_input("Input command..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        try:
-            # We add a safety check: Only call Groq if there are messages
-            chat_completion = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": "You are AEGIS, a witty AI assistant."}
-                ] + st.session_state.messages,
-                model="llama-3.1-8b-instant",
-            )
-            reply = chat_completion.choices[0].message.content
-            st.markdown(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            
-            # Browser Voice Trigger
-            js = f"""<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance("{reply.replace('"', '').replace("'", "")}"));</script>"""
-            st.components.v1.html(js, height=0)
-            
-        except Exception as e:
-            st.error(f"AEGIS Core Error: {str(e)}")
+        # 1. TOOL ROUTING
+        context = ""
+        # Search Trigger
+        if any(word in prompt.lower() for word in ["news", "today", "update", "latest", "who is"]):
+            with st.status("📡 Accessing Global Satellite Network..."):
+                context = tools.web_search(prompt)
+        
+        # Physics Trigger
+        if "orbit" in prompt.lower():
+            val = "".join(filter(str.isdigit, prompt))
+            if val: context = tools.calculate_orbital_mechanics(val)
+
+        # 2. BRAIN EXECUTION
+        full_prompt = f"Context: {context}\n\nUser: {prompt}" if context else prompt
+        
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "system", "content": "You are AEGIS, a high-tech assistant for Ikki. Be concise, scientific, and witty."}] + 
+                     st.session_state.messages[:-1] + [{"role": "user", "content": full_prompt}]
+        )
+        reply = completion.choices[0].message.content
+        st.markdown(reply)
+        st.session_state.messages.append({"role": "assistant", "content": reply})
+
+        # 3. BROWSER VOICE
+        js = f"""<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance("{reply.replace('"', '').replace("'", "")}"));</script>"""
+        st.components.v1.html(js, height=0)
