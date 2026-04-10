@@ -36,7 +36,7 @@ if prompt := st.chat_input("Command..."):
                 messages=[
                     {"role": "system", "content": "You are AEGIS, a witty AI assistant."}
                 ] + st.session_state.messages,
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
             )
             reply = chat_completion.choices[0].message.content
             st.markdown(reply)
