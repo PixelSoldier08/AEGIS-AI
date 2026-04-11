@@ -24,7 +24,7 @@ def get_aegis_response(user_input):
                 },
                 {"role": "user", "content": user_input}
             ],
-            model="llama3-70b-8192", # High-speed model for the HUD vibe
+            model="llama-3.3-70b-versatile", # High-speed model for the HUD vibe
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
