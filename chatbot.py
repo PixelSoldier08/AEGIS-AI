@@ -1,18 +1,33 @@
 import streamlit as st
 import psutil
 from groq import Groq
-from tavily import TavilyClient
+import base64
+import os
 
-# --- 1. CORE SYSTEM CONFIG ---
+# --- 1. BOOT SEQUENCE ---
 st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
+# Establish Neural Link
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-    tavily = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. HOLOGRAPHIC INTERFACE DESIGN ---
+# --- 2. THE DATA INJECTOR ---
+def get_model_uri(file_name):
+    """Encodes the 3D file into a string the browser can read instantly."""
+    if os.path.exists(file_name):
+        with open(file_name, "rb") as f:
+            data = f.read()
+        b64 = base64.b64encode(data).decode()
+        return f"data:application/octet-stream;base64,{b64}"
+    # Fallback to GitHub if local file is missing during push
+    return "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
+
+# Initialize URI
+model_uri = get_model_uri("download.glb")
+
+# --- 3. HOLOGRAPHIC INTERFACE ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
@@ -35,20 +50,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. SPEECH CORE ---
-def speak(text):
-    if text:
-        clean_text = text.replace("'", "\\'").replace("\n", " ")
-        st.components.v1.html(f"""
-            <script>
-            window.speechSynthesis.cancel();
-            var u = new SpeechSynthesisUtterance('{clean_text}');
-            u.pitch = 0.85; u.rate = 1.05; 
-            window.speechSynthesis.speak(u);
-            </script>
-        """, height=0)
-
-# --- 4. HUD & 3D RENDERING ---
+# --- 4. INTERFACE RENDER ---
 def render_ui():
     integrity = int(100 - psutil.cpu_percent())
     offset = 502 - (integrity / 100) * 502
@@ -68,10 +70,7 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-    # --- THE ABSOLUTE DIRECT LINK ---
-    # Optimized URL path for faster loading from Tiruchirappalli
-    model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
-    
+    # 3D RENDER (Transparent + High Exposure)
     st.markdown(f'''
     <div class="projection-zone">
         <iframe srcdoc='
@@ -80,10 +79,10 @@ def render_ui():
                 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
             </head>
             <body style="margin: 0; background: transparent; overflow: hidden;">
-                <model-viewer src="{model_url}" auto-rotate rotation-speed="40deg" 
+                <model-viewer src="{model_uri}" auto-rotate rotation-speed="40deg" 
                     camera-controls disable-zoom 
                     loading="eager"
-                    exposure="1.1"
+                    exposure="1.2"
                     shadow-intensity="1"
                     style="width: 320px; height: 320px; background: transparent; outline: none;">
                 </model-viewer>
@@ -109,7 +108,6 @@ if cmd := st.chat_input("Command AEGIS..."):
         st.markdown(cmd)
     
     with st.chat_message("assistant"):
-        # Synthesizing Groq Intel for Ikki
         chat = client.chat.completions.create(
             messages=[{"role": "user", "content": cmd}],
             model="llama-3.3-70b-versatile"
@@ -117,5 +115,4 @@ if cmd := st.chat_input("Command AEGIS..."):
         ans = chat.choices[0].message.content
         st.markdown(ans)
         st.session_state.history.append({"role": "assistant", "content": ans})
-        speak(ans)
         st.rerun()
