@@ -4,106 +4,121 @@ import requests
 import base64
 from groq import Groq
 
-# --- 1. BOOT SEQUENCE ---
+# --- 1. CORE IDENTITY & CONFIG ---
 st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
-# Establish Neural Link
+# Permanent Identity Lock
+USER_NAME = "Ikki"
+LOCATION = "Tiruchirappalli"
+
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. THE REMOTE DATA INJECTOR ---
-@st.cache_data # This keeps the model in memory so it doesn't download every second
-def get_remote_model():
-    # DIRECT RAW LINK to bypass all GitHub blocks
+# --- 2. STABLE 3D DATA LINK ---
+@st.cache_data
+def get_aegis_model():
+    # Direct Raw access to ensure 3D data flows correctly
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
     try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            b64 = base64.b64encode(response.content).decode()
-            return f"data:application/octet-stream;base64,{b64}"
-        else:
-            return None
+        res = requests.get(url, timeout=10)
+        if res.status_code == 200:
+            return f"data:application/octet-stream;base64,{base64.b64encode(res.content).decode()}"
     except:
         return None
+    return None
 
-model_uri = get_remote_model()
+model_uri = get_aegis_model()
 
-# --- 3. INTERFACE DESIGN ---
-st.markdown("""
+# --- 3. REINFORCED HUD DESIGN ---
+st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-    .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
-    header, footer, #MainMenu { visibility: hidden; }
-    .block-container { padding: 0 !important; }
-
-    .projection-zone {
-        position: fixed; bottom: 30px; right: 30px; z-index: 9999;
-        width: 320px; height: 320px;
-        background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, rgba(0,0,0,0) 70%);
-        border-radius: 50%;
-    }
+    
+    .stApp {{ background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }}
+    
+    /* Force HUD Visibility */
+    .aegis-hud {{
+        position: fixed; top: 20px; left: 30px; z-index: 10000;
+        padding: 15px; border-left: 3px solid #00d4ff;
+        background: rgba(0, 212, 255, 0.05);
+    }}
+    
+    /* 3D Hologram Positioning */
+    .hologram-container {{
+        position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+        width: 300px; height: 300px;
+    }}
+    
+    /* Clean UI */
+    header, footer, #MainMenu {{ visibility: hidden; }}
+    .stChatMessage {{ background: rgba(0, 212, 255, 0.05) !important; border: 1px solid #00d4ff33 !important; }}
     </style>
+    
+    <div class="aegis-hud">
+        <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
+        <p style="margin:0; font-size: 0.7rem; color: #00d4ff; opacity: 0.7;">OPERATOR: {USER_NAME.upper()} | LOC: {LOCATION.upper()}</p>
+    </div>
 """, unsafe_allow_html=True)
 
-# --- 4. HUD & 3D RENDERING ---
-def render_ui():
-    # HUD Header
-    st.markdown('''
-        <div style="position: fixed; top: 25px; left: 40px; border-left: 2px solid #00d4ff; padding-left: 20px;">
-            <p style="font-size: 1.5rem; font-weight: bold; margin: 0;">AEGIS // MARK I</p>
-            <p style="font-size: 0.7rem; opacity: 0.8; margin: 0;">USER: IKKI | STATUS: ACTIVE</p>
-        </div>
+# --- 4. SPEECH SYNTHESIS ---
+def speak(text):
+    if text:
+        clean_text = text.replace("'", "\\'").replace("\n", " ")
+        st.components.v1.html(f"""
+            <script>
+            window.speechSynthesis.cancel();
+            var msg = new SpeechSynthesisUtterance('{clean_text}');
+            msg.pitch = 0.9; msg.rate = 1.0;
+            window.speechSynthesis.speak(msg);
+            </script>
+        """, height=0)
+
+# --- 5. INTERFACE & 3D ---
+if model_uri:
+    st.markdown(f'''
+    <div class="hologram-container">
+        <iframe srcdoc='
+            <html>
+            <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+            <body style="margin:0; background:transparent; overflow:hidden;">
+                <model-viewer src="{model_uri}" auto-rotate rotation-speed="30deg" 
+                    camera-controls disable-zoom exposure="1.2"
+                    style="width:300px; height:300px; background:transparent; outline:none;">
+                </model-viewer>
+            </body>
+            </html>
+        ' style="width:300px; height:300px; border:none;"></iframe>
+    </div>
     ''', unsafe_allow_html=True)
 
-    # 3D Hologram
-    if model_uri:
-        st.markdown(f'''
-        <div class="projection-zone">
-            <iframe srcdoc='
-                <html>
-                <head>
-                    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-                </head>
-                <body style="margin: 0; background: transparent; overflow: hidden;">
-                    <model-viewer src="{model_uri}" auto-rotate rotation-speed="40deg" 
-                        camera-controls disable-zoom exposure="1.3"
-                        style="width: 320px; height: 320px; background: transparent; outline: none;">
-                    </model-viewer>
-                </body>
-                </html>
-            ' style="width: 320px; height: 320px; border: none; background: transparent;"></iframe>
-        </div>
-        ''', unsafe_allow_html=True)
-    else:
-        st.error("AEGIS CORE OFFLINE: Could not fetch 3D Data.")
+# --- 6. CHAT LOGIC ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# --- 5. CHAT ENGINE ---
-render_ui()
-
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# Display Chat
-for m in st.session_state.history:
+for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-# Command Input
-if cmd := st.chat_input("Command AEGIS..."):
-    st.session_state.history.append({"role": "user", "content": cmd})
+if prompt := st.chat_input("Input command..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.markdown(cmd)
-    
+        st.markdown(prompt)
+
     with st.chat_message("assistant"):
         try:
-            chat = client.chat.completions.create(
-                messages=[{"role": "user", "content": cmd}],
+            # Identity injected directly into every request
+            response = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": f"You are AEGIS, a high-tech AI. You are talking to {USER_NAME} in {LOCATION}. Be brief, professional, and slightly futuristic."},
+                    {"role": "user", "content": prompt}
+                ],
                 model="llama-3.3-70b-versatile"
             )
-            ans = chat.choices[0].message.content
-            st.markdown(ans)
-            st.session_state.history.append({"role": "assistant", "content": ans})
+            full_res = response.choices[0].message.content
+            st.markdown(full_res)
+            st.session_state.messages.append({"role": "assistant", "content": full_res})
+            speak(full_res)
         except Exception as e:
-            st.error(f"Neural Error: {e}")
+            st.error(f"SYSTEM FAILURE: {e}")
