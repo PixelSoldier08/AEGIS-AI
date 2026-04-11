@@ -56,7 +56,7 @@ st.markdown(f"""
         border: 1px solid #00d4ff22 !important; 
         border-radius: 15px !important;
         margin-bottom: 20px;
-        max-width: 80%;
+        max-width: 50%;
     }}
     
     </style>
