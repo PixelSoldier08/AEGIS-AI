@@ -3,55 +3,58 @@ import requests
 import base64
 from groq import Groq
 
-# --- 1. CORE SYSTEM CONFIG ---
+# --- 1. CORE SYSTEM ---
 st.set_page_config(page_title="AEGIS MARK I", layout="wide")
 
 USER_NAME = "Ikki"
 LOCATION = "Tiruchirappalli"
 
-# Initialize Session State for Chat
+# Initialize Chat Memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 2. STABLE UI INJECTION (Fixes the Crash) ---
-# We use a standard string here to avoid f-string quote conflicts
+# --- 2. THE INTERFACE (NO CRASH VERSION) ---
 css_code = """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
-    .stApp {
+    [data-testid="stAppViewContainer"] {
         background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%) !important;
+    }
+
+    .stApp {
         color: #00d4ff !important;
         font-family: 'Orbitron', sans-serif !important;
     }
 
-    /* Fixed Command Box Positioning */
+    /* Fixed Input Box at Bottom */
     div[data-testid="stChatInput"] {
         position: fixed !important;
-        bottom: 30px !important;
+        bottom: 20px !important;
         z-index: 1000;
+        background: transparent !important;
     }
 
-    /* Top HUD Styling */
+    /* Top Left HUD */
     .aegis-hud {
-        position: fixed; top: 20px; left: 30px; z-index: 1001;
-        border-left: 2px solid #00d4ff;
+        position: fixed; top: 10px; left: 20px; z-index: 1001;
+        border-left: 3px solid #ff0000; /* Red Tactical Accent */
         padding-left: 15px;
     }
 </style>
 """
 st.markdown(css_code, unsafe_allow_html=True)
 
-# HUD Display
+# UI Widgets
 st.markdown(f'''
     <div class="aegis-hud">
-        <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px; color:#00d4ff;">AEGIS // MK I</h2>
-        <p style="margin:0; font-size: 0.7rem; opacity: 0.7; color:#00d4ff;">OPERATOR: {USER_NAME}</p>
-        <p style="margin:0; font-size: 0.6rem; opacity: 0.5; color:#00d4ff;">LOC: {LOCATION}</p>
+        <h2 style="margin:0; font-size: 1.1rem; color:#ff0000; letter-spacing:2px;">AEGIS // MK I</h2>
+        <p style="margin:0; font-size: 0.7rem; color:#00d4ff;">OPERATOR: {USER_NAME.upper()}</p>
+        <p style="margin:0; font-size: 0.6rem; opacity:0.6; color:#00d4ff;">LOC: {LOCATION.upper()}</p>
     </div>
 ''', unsafe_allow_html=True)
 
-# --- 3. 3D HOLOGRAM (STERN RED OVERRIDE) ---
+# --- 3. THE BLOOD SPIDER (Red & Transparent) ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -63,7 +66,7 @@ def get_aegis_model():
 model_uri = get_aegis_model()
 if model_uri:
     st.markdown(f'''
-    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 9999;">
+    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 999;">
         <iframe srcdoc='
             <html>
             <head>
@@ -72,54 +75,50 @@ if model_uri:
                     model-viewer {{
                         width: 300px; height: 300px; 
                         background-color: transparent !important;
-                        /* FORCE RED FILTER */
-                        filter: brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(10) contrast(1.2);
+                        filter: brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(12) contrast(1.2);
                         --background-color: transparent !important;
                     }}
                 </style>
             </head>
             <body>
                 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-                <model-viewer src="{model_uri}" 
-                    auto-rotate 
-                    camera-controls 
-                    interaction-prompt="none"
-                    shadow-intensity="2"
-                    environment-intensity="0.2"  /* Dims the white light */
-                    exposure="0.8">              /* Prevents washing out */
+                <model-viewer src="{model_uri}" auto-rotate camera-controls disable-zoom
+                    shadow-intensity="2" environment-intensity="0.2" exposure="0.8">
                 </model-viewer>
             </body>
             </html>
         ' style="width:300px; height:300px; border:none; background:transparent;" allowtransparency="true"></iframe>
     </div>
     ''', unsafe_allow_html=True)
-# --- 4. CHAT FUNCTIONALITY ---
-# Display conversation history
+
+# --- 4. THE BRAIN (Groq + Identity) ---
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
 if prompt := st.chat_input("Command AEGIS..."):
-    # Store user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate AI response
     with st.chat_message("assistant"):
         try:
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            
+            # HARDCODING BRAIN CONTENT HERE
+            system_msg = {
+                "role": "system", 
+                "content": f"You are AEGIS, a high-security tactical AI. Your operator is {USER_NAME}. "
+                           f"You are currently deployed in {LOCATION}. Respond with tactical brevity."
+            }
+            
             response = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": "You are AEGIS, a tactical assistant. Use concise, high-tech language."},
-                    *st.session_state.messages
-                ],
+                messages=[system_msg, *st.session_state.messages],
                 model="llama-3.3-70b-versatile"
             )
             ans = response.choices[0].message.content
             st.markdown(ans)
             st.session_state.messages.append({"role": "assistant", "content": ans})
         except Exception as e:
-            st.error(f"NEURAL DISCONNECT: {e}")
-    
+            st.error(f"NEURAL ERROR: {e}")
     st.rerun()
