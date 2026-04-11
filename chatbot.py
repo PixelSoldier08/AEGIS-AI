@@ -1,10 +1,9 @@
 import streamlit as st
 import psutil
-import time
 from groq import Groq
 from tavily import TavilyClient
 
-# --- 1. SYSTEM INITIALIZATION ---
+# --- 1. CORE SYSTEM CONFIG ---
 st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
 try:
@@ -13,19 +12,19 @@ try:
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. HOLOGRAPHIC INTERFACE CSS ---
+# --- 2. HOLOGRAPHIC INTERFACE DESIGN ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
     .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
     header, footer, #MainMenu { visibility: hidden; }
-    .block-container { padding-top: 160px !important; }
+    .block-container { padding-top: 150px !important; }
 
-    /* Fixed HUD Matrix (Top Left) */
+    /* HUD Header (Top Left) */
     .aegis-header {
         position: fixed; top: 25px; left: 40px; z-index: 9999;
-        display: flex; align-items: center; gap: 25px;
+        display: flex; align-items: center; gap: 20px;
     }
     
     /* 3D Hologram Zone (Bottom Right) */
@@ -57,7 +56,7 @@ def get_aegis_intel(prompt):
         context = search['results']
         chat = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are AEGIS, a professional AI assistant. Respond concisely."},
+                {"role": "system", "content": f"You are AEGIS. User: Ikki. Loc: Tiruchirappalli. Context: {context}. Be professional and concise."},
                 {"role": "user", "content": prompt}
             ],
             model="llama-3.3-70b-versatile"
@@ -66,16 +65,17 @@ def get_aegis_intel(prompt):
     except Exception as e:
         return f"Neural Error: {str(e)}"
 
-# --- 4. HUD & 3D RENDERING ---
+# --- 4. INTERFACE RENDER ---
 def render_ui():
+    # HUD Logic
     integrity = int(100 - psutil.cpu_percent())
     offset = 502 - (integrity / 100) * 502
     
     st.markdown(f'''
     <div class="aegis-header">
-        <svg width="110" height="110" viewBox="0 0 220 220">
+        <svg width="100" height="100" viewBox="0 0 220 220">
             <circle stroke="#1a3a4a" stroke-width="4" fill="transparent" r="80" cx="110" cy="110"/>
-            <circle stroke="#00d4ff" stroke-width="14" stroke-dasharray="502" 
+            <circle stroke="#00d4ff" stroke-width="12" stroke-dasharray="502" 
                     stroke-dashoffset="{offset}" stroke-linecap="round" fill="transparent" r="80" cx="110" cy="110"
                     style="transform: rotate(-90deg); transform-origin: center; filter: drop-shadow(0 0 10px #00d4ff); transition: 1.5s;"/>
         </svg>
@@ -86,7 +86,7 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-    # UPDATED RAW LINK
+    # UPDATED STABLE LINK
     model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/download.glb"
     
     st.markdown(f'''
@@ -108,29 +108,24 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 5. MAIN LOGIC ---
+# --- 5. CHAT ENGINE ---
 render_ui()
 
-if "history" not in st.session_state: st.session_state.history = []
-if "last_ans" not in st.session_state: st.session_state.last_ans = None
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 for m in st.session_state.history:
-    with st.chat_message(m["role"]): st.markdown(m["content"])
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
 
 if cmd := st.chat_input("Command AEGIS..."):
     st.session_state.history.append({"role": "user", "content": cmd})
-    with st.chat_message("user"): st.markdown(cmd)
+    with st.chat_message("user"):
+        st.markdown(cmd)
     
     with st.chat_message("assistant"):
         ans = get_aegis_intel(cmd)
         st.markdown(ans)
         st.session_state.history.append({"role": "assistant", "content": ans})
-        st.session_state.last_ans = ans
+        speak(ans) # Speak immediately
         st.rerun()
-
-if st.session_state.last_ans:
-    speak(st.session_state.last_ans)
-    st.session_state.last_ans = None
-
-time.sleep(3)
-st.rerun()
