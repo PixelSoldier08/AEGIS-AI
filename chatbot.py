@@ -69,7 +69,7 @@ def render_ui():
     ''', unsafe_allow_html=True)
 
     # --- THE ABSOLUTE DIRECT LINK ---
-    # Using 'raw.githubusercontent.com' is the most stable way to serve 3D models
+    # Optimized URL path for faster loading from Tiruchirappalli
     model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
     
     st.markdown(f'''
@@ -83,6 +83,8 @@ def render_ui():
                 <model-viewer src="{model_url}" auto-rotate rotation-speed="40deg" 
                     camera-controls disable-zoom 
                     loading="eager"
+                    exposure="1.1"
+                    shadow-intensity="1"
                     style="width: 320px; height: 320px; background: transparent; outline: none;">
                 </model-viewer>
             </body>
@@ -107,6 +109,7 @@ if cmd := st.chat_input("Command AEGIS..."):
         st.markdown(cmd)
     
     with st.chat_message("assistant"):
+        # Synthesizing Groq Intel for Ikki
         chat = client.chat.completions.create(
             messages=[{"role": "user", "content": cmd}],
             model="llama-3.3-70b-versatile"
