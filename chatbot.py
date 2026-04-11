@@ -89,7 +89,7 @@ def render_ui():
 
     # --- THE CRITICAL FIX ---
     # This URL adds "?raw=true" so GitHub sends the actual file to the viewer
-    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/blob/main/Spider.glb?raw=true"
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/download.glb"
     
     st.markdown(f'''
     <div class="projection-zone">
