@@ -51,7 +51,7 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-# --- 3. 3D HOLOGRAM (Transparency Patch) ---
+# --- 3. 3D HOLOGRAM PROJECTION (TEXTURE REDUX) ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -62,20 +62,39 @@ def get_aegis_model():
 
 model_uri = get_aegis_model()
 if model_uri:
-    st.markdown(f'''
-    <div style="position: fixed; bottom: 100px; right: 20px; z-index: 999;">
+    # Use a raw string (r''') to prevent any escape character or f-string crashes
+    model_html = f'''
+    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 9999;">
         <iframe srcdoc='
             <html>
+            <head>
+                <style>
+                    html, body {{ background: transparent !important; margin: 0; padding: 0; overflow: hidden; }}
+                    model-viewer {{
+                        width: 300px; height: 300px; 
+                        background-color: transparent !important;
+                        --background-color: transparent !important;
+                        --poster-color: transparent !important;
+                        outline: none;
+                    }}
+                </style>
+            </head>
             <body style="margin:0; background:transparent;">
                 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-                <model-viewer src="{model_uri}" style="width:300px; height:300px; background:transparent;" 
-                    auto-rotate camera-controls disable-zoom></model-viewer>
+                <model-viewer src="{model_uri}" 
+                    style="width:300px; height:300px; background:transparent;" 
+                    auto-rotate 
+                    camera-controls 
+                    disable-zoom="false"
+                    shadow-intensity="10" /* Crucial for that textured feel */
+                    exposure="2.0">      /* Crucial for the red saturation */
+                </model-viewer>
             </body>
             </html>
         ' style="width:300px; height:300px; border:none; background:transparent;" allowtransparency="true"></iframe>
     </div>
-    ''', unsafe_allow_html=True)
-
+    '''
+    st.markdown(model_html, unsafe_allow_html=True)
 # --- 4. CHAT FUNCTIONALITY ---
 # Display conversation history
 for m in st.session_state.messages:
