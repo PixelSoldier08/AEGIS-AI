@@ -37,7 +37,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. SPEECH ENGINE ---
+# --- 3. SPEECH CORE ---
 def speak(text):
     if text:
         clean_text = text.replace("'", "\\'").replace("\n", " ")
@@ -70,9 +70,8 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-    # --- THE CRITICAL FIX ---
-    # I have changed '/blob/' to '/raw/' and added the correct branch info.
-    model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
+    # --- UPDATED RAW LINK ---
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/download.glb"
     
     st.markdown(f'''
     <div class="projection-zone">
@@ -93,7 +92,7 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 5. EXECUTION ---
+# --- 5. CHAT ENGINE ---
 render_ui()
 
 if "history" not in st.session_state:
@@ -110,7 +109,6 @@ if cmd := st.chat_input("Command AEGIS..."):
     
     with st.chat_message("assistant"):
         # Quick Response Engine
-        search = tavily.search(query=cmd, search_depth="advanced")
         chat = client.chat.completions.create(
             messages=[{"role": "user", "content": cmd}],
             model="llama-3.3-70b-versatile"
