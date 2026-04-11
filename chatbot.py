@@ -12,7 +12,7 @@ try:
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. THE TOTAL INTERFACE OVERRIDE ---
+# --- 2. THE TOTAL HUD & CAPSULE OVERRIDE ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
@@ -20,66 +20,78 @@ st.markdown("""
     .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
     header, footer, #MainMenu { visibility: hidden; }
 
-    /* === THE NUCLEAR FIX FOR THE CAPSULE === */
+    /* === CIRCULAR HUD RESTORATION === */
+    .aegis-hud-circle {
+        position: fixed; top: 25px; left: 40px; z-index: 10000;
+        display: flex; align-items: center; gap: 15px;
+    }
+    .hud-ring {
+        width: 60px; height: 60px;
+        border: 3px solid #00d4ff;
+        border-top: 3px solid transparent;
+        border-radius: 50%;
+        animation: spin 2s linear infinite;
+        filter: drop-shadow(0 0 5px #00d4ff);
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* 1. Target the outer container to remove the grey background/border */
+    /* === THE FINAL CAPSULE FIX === */
+    /* This kills the grey box background entirely */
     [data-testid="stChatInput"] {
-        position: fixed !important;
-        bottom: 40px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 100% !important;
-        max-width: 600px !important;
         background-color: transparent !important;
         border: none !important;
-        z-index: 10001 !important;
+        position: fixed !important;
+        bottom: 30px !important;
+        padding: 0 !important;
     }
 
-    /* 2. Target the intermediate div that Streamlit uses for the box effect */
+    /* This targets the inner container that forces the square shape */
     [data-testid="stChatInput"] > div {
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 0 !important;
     }
 
-    /* 3. Style the actual Text Area into a perfect capsule */
+    /* The actual Capsule Body */
     [data-testid="stChatInput"] textarea {
         background: rgba(0, 212, 255, 0.07) !important;
         border: 2px solid #00d4ff !important;
         border-radius: 100px !important; 
         color: #00d4ff !important;
-        padding: 12px 60px 12px 25px !important; /* Extra right padding for the button */
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3) !important;
-        overflow: hidden !important;
+        padding: 14px 60px 14px 25px !important;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2) !important;
+        height: 55px !important;
+        min-height: 55px !important;
     }
 
-    /* 4. Force the Submit Button to sit inside the blue border */
+    /* Centering the Enter Button inside the Capsule */
     [data-testid="stChatInput"] button {
-        position: absolute !important;
-        right: 15px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
         background-color: transparent !important;
         border: none !important;
         color: #00d4ff !important;
-        transition: 0.3s;
-    }
-    
-    [data-testid="stChatInput"] button:hover {
-        color: #ffffff !important;
-        filter: drop-shadow(0 0 5px #00d4ff);
+        right: 15px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* 5. HUD Styling */
-    .aegis-hud {
-        position: fixed; top: 20px; left: 30px; z-index: 10000;
-        padding: 15px; border-left: 3px solid #00d4ff;
+    [data-testid="stChatInput"] button:hover {
+        color: #fff !important;
+        filter: drop-shadow(0 0 8px #00d4ff);
     }
     </style>
+
+    <div class="aegis-hud-circle">
+        <div class="hud-ring"></div>
+        <div>
+            <h2 style="margin:0; font-size: 1.1rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
+            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: IKKI</p>
+        </div>
+    </div>
 """, unsafe_allow_html=True)
 
-# --- 3. 3D & HUD RENDER ---
+# --- 3. 3D & CHAT LOGIC ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -89,8 +101,6 @@ def get_aegis_model():
     except: return None
 
 model_uri = get_aegis_model()
-
-st.markdown('<div class="aegis-hud"><h2>AEGIS // MARK I</h2><p>OPERATOR: IKKI</p></div>', unsafe_allow_html=True)
 
 if model_uri:
     st.markdown(f'''
@@ -109,17 +119,16 @@ if model_uri:
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 4. CHAT SYSTEM ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Spacer for scrolling
-st.markdown('<div style="height: 50px;"></div>', unsafe_allow_html=True)
+# Message display
+st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
 if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    # Assistant Logic
+    # Assistant processing here
     st.rerun()
