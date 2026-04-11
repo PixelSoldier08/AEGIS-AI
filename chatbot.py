@@ -37,7 +37,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. SPEECH & INTEL ENGINES ---
+# --- 3. SPEECH ENGINE ---
 def speak(text):
     if text:
         clean_text = text.replace("'", "\\'").replace("\n", " ")
@@ -50,24 +50,8 @@ def speak(text):
             </script>
         """, height=0)
 
-def get_aegis_intel(prompt):
-    try:
-        search = tavily.search(query=prompt, search_depth="advanced")
-        context = search['results']
-        chat = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": f"You are AEGIS. User: Ikki. Loc: Tiruchirappalli. Context: {context}. Be professional and concise."},
-                {"role": "user", "content": prompt}
-            ],
-            model="llama-3.3-70b-versatile"
-        )
-        return chat.choices[0].message.content
-    except Exception as e:
-        return f"Neural Error: {str(e)}"
-
-# --- 4. INTERFACE RENDER ---
+# --- 4. HUD & 3D RENDERING ---
 def render_ui():
-    # HUD Logic
     integrity = int(100 - psutil.cpu_percent())
     offset = 502 - (integrity / 100) * 502
     
@@ -86,8 +70,9 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-    # UPDATED STABLE LINK
-    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/main/download.glb"
+    # --- THE CRITICAL FIX ---
+    # I have changed '/blob/' to '/raw/' and added the correct branch info.
+    model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
     
     st.markdown(f'''
     <div class="projection-zone">
@@ -108,7 +93,7 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 5. CHAT ENGINE ---
+# --- 5. EXECUTION ---
 render_ui()
 
 if "history" not in st.session_state:
@@ -124,8 +109,14 @@ if cmd := st.chat_input("Command AEGIS..."):
         st.markdown(cmd)
     
     with st.chat_message("assistant"):
-        ans = get_aegis_intel(cmd)
+        # Quick Response Engine
+        search = tavily.search(query=cmd, search_depth="advanced")
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": cmd}],
+            model="llama-3.3-70b-versatile"
+        )
+        ans = chat.choices[0].message.content
         st.markdown(ans)
         st.session_state.history.append({"role": "assistant", "content": ans})
-        speak(ans) # Speak immediately
+        speak(ans)
         st.rerun()
