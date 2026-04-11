@@ -26,14 +26,48 @@ st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
-    /* KINETIC BACKGROUND & CORE THEME */
     .stApp {{
         background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%) !important;
         color: #00d4ff !important;
         font-family: 'Orbitron', sans-serif !important;
     }}
 
-    /* STARFIELD ANIMATION */
+    /* 1. THE ULTIMATE SPACE & BORDER KILLER */
+    .main .block-container {{
+        padding-bottom: 0px !important;
+        margin-bottom: 0px !important;
+    }}
+
+    /* This removes the "border-like structure" you see around the input */
+    div[data-testid="stChatInput"] {{
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0px !important;
+        position: fixed !important;
+        bottom: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 10001 !important;
+    }}
+
+    /* This targets the inner wrapper that usually holds the grey border */
+    div[data-testid="stChatInput"] > div {{
+        border: none !important;
+        background: transparent !important;
+        padding: 0px !important;
+    }}
+
+    /* 2. THE CAPSULE DESIGN (Inner only) */
+    div[data-testid="stChatInput"] textarea {{
+        background: rgba(0, 212, 255, 0.1) !important;
+        border: 2px solid #00d4ff !important;
+        border-radius: 50px !important; 
+        color: #00d4ff !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3) !important;
+    }}
+
+    /* 3. STARFIELD & HUD */
     @keyframes moveStars {{
         from {{ transform: translateY(0px); }}
         to {{ transform: translateY(-2000px); }}
@@ -46,83 +80,10 @@ st.markdown(f"""
         opacity: 0.3;
     }}
 
-    /* DEAD-ZONE KILLER: Removes the blank space at the bottom */
-    .main .block-container {{
-        padding-top: 2rem !important;
-        padding-bottom: 0rem !important;
-        max-width: 95% !important;
-        height: 100vh !important;
-    }}
-
-    div[data-testid="stVerticalBlock"] > div:last-child {{
-        margin-bottom: 0px !important;
-        padding-bottom: 0px !important;
-    }}
-
-    header, footer {{visibility: hidden !important; height: 0px !important;}}
-    [data-testid="stHeader"] {{display: none !important;}}
-
-    /* HUD RING - TOP LEFT */
-    .aegis-hud-container {{
-        position: fixed; top: 25px; left: 40px; z-index: 10000;
-        display: flex; align-items: center; gap: 20px;
-    }}
-    .hud-ring-outer {{
-        width: 70px; height: 70px;
-        border: 2px dashed #00d4ff;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        animation: spin-slow 10s linear infinite;
-    }}
-    .hud-ring-inner {{
-        width: 45px; height: 45px;
-        border: 3px solid #00d4ff;
-        border-top: 3px solid transparent;
-        border-radius: 50%;
-        animation: spin-fast 2s linear infinite;
-    }}
-    @keyframes spin-slow {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-    @keyframes spin-fast {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-
-    /* CHAT CAPSULE: Anchored to the edge */
-    div[data-testid="stChatInput"] {{
-        background-color: transparent !important;
-        border: none !important;
-        position: fixed !important;
-        bottom: 15px !important; 
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 100% !important;
-        max-width: 650px !important;
-        z-index: 10001 !important;
-    }}
-
-    div[data-testid="stChatInput"] textarea {{
-        background: rgba(0, 212, 255, 0.1) !important;
-        border: 2px solid #00d4ff !important;
-        border-radius: 50px !important; 
-        color: #00d4ff !important;
-        box-shadow: 0 0 25px rgba(0, 212, 255, 0.3) !important;
-        padding-left: 20px !important;
-    }}
-
-    /* Chat Message Bubbles */
-    .stChatMessage {{
-        background: rgba(0, 212, 255, 0.05) !important;
-        border-left: 3px solid #00d4ff !important;
-        border-radius: 0 15px 15px 0 !important;
-    }}
+    header, footer {{visibility: hidden !important;}}
     </style>
 
     <div class="stars"></div>
-    
-    <div class="aegis-hud-container">
-        <div class="hud-ring-outer"><div class="hud-ring-inner"></div></div>
-        <div>
-            <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
-            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: {USER_NAME.upper()} | LOC: {LOCATION.upper()}</p>
-        </div>
-    </div>
 """, unsafe_allow_html=True)
 
 # --- 3. 3D HOLOGRAM PROJECTION ---
