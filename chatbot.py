@@ -21,45 +21,24 @@ try:
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. THE NUCLEAR INTERFACE OVERRIDE ---
+# --- 2. THE REFINED INTERFACE ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
-    /* KILL ALL DEFAULT PADDING & SCROLLBAR GAPS */
-    html, body, [data-testid="stAppViewContainer"] {{
+    /* CORE THEME */
+    .stApp {{
         background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%) !important;
-        overflow: hidden !important;
-        height: 100vh !important;
+        color: #00d4ff !important;
+        font-family: 'Orbitron', sans-serif !important;
     }}
 
-    .main .block-container {{
-        padding: 0 !important;
-        max-width: 100% !important;
-        height: 100vh !important;
-    }}
-
-    /* HIDE HEADER/FOOTER AND BLACK BARS */
-    header, footer, [data-testid="stHeader"], [data-testid="stBottom"] {{
-        display: none !important;
-        visibility: hidden !important;
-    }}
-
-    /* CHAT INPUT STABILIZATION - Removes the grey structure */
+    /* FIXING THE COMMAND BOX (Bringing it back) */
     div[data-testid="stChatInput"] {{
         position: fixed !important;
-        bottom: 30px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        background: transparent !important;
-        border: none !important;
-        width: 60% !important;
+        bottom: 20px !important;
+        padding: 0 10% !important;
         z-index: 10000 !important;
-    }}
-
-    div[data-testid="stChatInput"] > div {{
-        background: transparent !important;
-        border: none !important;
     }}
 
     div[data-testid="stChatInput"] textarea {{
@@ -67,23 +46,30 @@ st.markdown(f"""
         border: 2px solid #00d4ff !important;
         border-radius: 50px !important; 
         color: #00d4ff !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3) !important;
     }}
 
-    /* HUD */
+    /* HIDING THE GREY BOX STRUCTURE AROUND INPUT */
+    div[data-testid="stChatInput"] > div {{
+        background-color: transparent !important;
+        border: none !important;
+    }}
+
+    /* HUD ELEMENTS */
+    header, footer, [data-testid="stHeader"] {{ visibility: hidden !important; }}
+
     .aegis-hud {{
-        position: fixed; top: 20px; left: 30px; z-index: 10001;
-        font-family: 'Orbitron', sans-serif;
+        position: fixed; top: 20px; left: 30px; z-index: 1000;
         color: #00d4ff;
     }}
     </style>
     <div class="aegis-hud">
-        <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 3px;">AEGIS // MK I</h2>
-        <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">LOC: {LOCATION.upper()}</p>
+        <h2 style="margin:0; font-size: 1.1rem; letter-spacing: 2px;">AEGIS // MK I</h2>
+        <p style="margin:0; font-size: 0.6rem; opacity: 0.7;">OPERATOR: {USER_NAME.upper()}</p>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. 3D HOLOGRAM (ULTIMATE TRANSPARENCY FIX) ---
+# --- 3. THE "WHITE BOX" KILLER (3D Model) ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -95,31 +81,46 @@ def get_aegis_model():
 model_uri = get_aegis_model()
 if model_uri:
     st.markdown(f'''
-    <div style="position: fixed; bottom: 100px; right: 20px; z-index: 10002;">
+    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 9999; pointer-events: auto;">
         <iframe srcdoc='
             <html>
             <head>
                 <style>
-                    html, body {{ background: transparent !important; margin: 0; overflow: hidden; }}
-                    model-viewer {{ 
-                        width: 300px; height: 300px; 
+                    /* Force everything to be transparent */
+                    html, body {{ 
+                        background: transparent !important; 
+                        margin: 0; 
+                        padding: 0; 
+                        overflow: hidden; 
+                    }}
+                    model-viewer {{
+                        width: 300px; 
+                        height: 300px; 
                         background-color: transparent !important;
                         --background-color: transparent !important;
+                        outline: none;
                     }}
                 </style>
             </head>
             <body>
                 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-                <model-viewer src="{model_uri}" auto-rotate camera-controls disable-zoom></model-viewer>
+                <model-viewer 
+                    src="{model_uri}" 
+                    auto-rotate 
+                    camera-controls 
+                    touch-action="pan-y"
+                    shadow-intensity="0"
+                    exposure="1">
+                </model-viewer>
             </body>
             </html>
-        ' style="width:300px; height:300px; border:none; background:transparent;"></iframe>
+        ' style="width:300px; height:300px; border:none; background:transparent;" allowtransparency="true"></iframe>
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 4. CHAT AREA ---
-# Container for messages to prevent them from hitting the edges
-st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
+# --- 4. CHAT LOGIC ---
+st.markdown('<div style="height: 80px;"></div>', unsafe_allow_html=True)
+
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.write(m["content"])
@@ -133,7 +134,7 @@ if prompt := st.chat_input("Command AEGIS..."):
         try:
             response = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": "You are AEGIS, a high-tech AI. Respond concisely."},
+                    {"role": "system", "content": f"You are AEGIS. Respond to {USER_NAME}."},
                     *st.session_state.messages
                 ],
                 model="llama-3.3-70b-versatile"
@@ -142,5 +143,5 @@ if prompt := st.chat_input("Command AEGIS..."):
             st.write(ans)
             st.session_state.messages.append({"role": "assistant", "content": ans})
         except Exception as e:
-            st.error(f"SYSTEM ERROR: {e}")
+            st.error(f"NEURAL ERROR: {e}")
     st.rerun()
