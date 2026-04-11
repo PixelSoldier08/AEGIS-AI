@@ -21,13 +21,11 @@ st.markdown("""
     header, footer, #MainMenu { visibility: hidden; }
     .block-container { padding-top: 150px !important; }
 
-    /* HUD Header (Top Left) */
     .aegis-header {
         position: fixed; top: 25px; left: 40px; z-index: 9999;
         display: flex; align-items: center; gap: 20px;
     }
     
-    /* 3D Hologram Zone (Bottom Right) */
     .projection-zone {
         position: fixed; bottom: 30px; right: 30px; z-index: 9999;
         width: 320px; height: 320px;
@@ -70,8 +68,9 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-    # --- UPDATED RAW LINK ---
-    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/download.glb"
+    # --- THE ABSOLUTE DIRECT LINK ---
+    # Using 'raw.githubusercontent.com' is the most stable way to serve 3D models
+    model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
     
     st.markdown(f'''
     <div class="projection-zone">
@@ -108,7 +107,6 @@ if cmd := st.chat_input("Command AEGIS..."):
         st.markdown(cmd)
     
     with st.chat_message("assistant"):
-        # Quick Response Engine
         chat = client.chat.completions.create(
             messages=[{"role": "user", "content": cmd}],
             model="llama-3.3-70b-versatile"
