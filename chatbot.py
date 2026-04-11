@@ -113,7 +113,7 @@ def render_hud():
 
     # 3D Spider-Logo Projection (Bottom Right)
     # REPLACE this URL with your RAW link from GitHub for '3dpea.com_download.glb'
-    model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/3dpea.com_download.glb" 
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/Spider.glb" 
     
     st.markdown('<div class="projection-orb">', unsafe_allow_html=True)
     st.components.v1.html(f"""
