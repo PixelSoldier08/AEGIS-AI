@@ -2,42 +2,29 @@ import streamlit as st
 import psutil
 import time
 
-# 1. PAGE SETUP (Must be the very first Streamlit command)
-st.set_page_config(page_title="AEGIS HUD", layout="wide", initial_sidebar_state="collapsed")
+# --- INITIAL CONFIG ---
+st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. THE CSS (This styles the background and floats the HUD)
+# --- UI / STARK STYLING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-
     .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
-    .block-container { padding-top: 160px !important; } /* Pushes chat down */
+    .block-container { padding-top: 150px !important; }
     header, footer, #MainMenu {visibility: hidden;}
 
     .aegis-header-container {
-        position: fixed;
-        top: 20px;
-        left: 30px;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 25px;
-        pointer-events: none;
+        position: fixed; top: 20px; left: 30px; z-index: 9999;
+        display: flex; align-items: center; gap: 25px; pointer-events: none;
     }
-
-    .aegis-info-block {
-        border-left: 3px solid #00d4ff;
-        padding-left: 20px;
-    }
-
+    .aegis-info-block { border-left: 3px solid #00d4ff; padding-left: 20px; }
     .title-text { font-size: 1.5rem; font-weight: bold; text-shadow: 0 0 10px #00d4ff; margin: 0; }
     .sub-text { font-size: 0.7rem; opacity: 0.8; margin: 5px 0 0 0; }
-    
     .ring-circle { transition: stroke-dashoffset 0.8s ease; transform: rotate(-90deg); transform-origin: center; }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. HUD RENDERER
+# --- HUD RENDERER ---
 def render_aegis_hud():
     integrity = 100 - psutil.cpu_percent()
     circum = 502
@@ -67,34 +54,36 @@ def render_aegis_hud():
     '''
     st.markdown(hud_html, unsafe_allow_html=True)
 
-# 4. EXECUTE UI
 render_aegis_hud()
 
-# 5. CHAT LOGIC
+# --- BRAIN LOGIC (The Thinking Part) ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show history
+# Display conversation history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Input handling
+# User Input
 if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-        
+
     with st.chat_message("assistant"):
-        # You can replace this logic with your actual AI call later
-        if "who are you" in prompt.lower():
-            response = "I am AEGIS, your personal neural interface. Systems are fully operational."
+        # PERSONALITY MODE: Instead of "Analysis complete", we give him a voice.
+        # If you have an LLM connected, call it here. For now, let's restore conversational flow:
+        if "tony stark" in prompt.lower():
+            response = "Mr. Stark is the primary inspiration for my architecture. I am currently running a modified version of the Mark I interface for your terminal."
+        elif "who are you" in prompt.lower():
+            response = "I am AEGIS. Your personal AI collaborator. My current system integrity is optimal, and I am standing by for your commands, Ikki."
         else:
-            response = f"Analysis of '{prompt}' complete. Standing by."
+            response = f"Scanning databases for '{prompt}'... I've processed the request. How would you like me to proceed?"
         
         st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-# 6. AUTO-REFRESH (To keep the circular bar moving)
+# --- REFRESH ---
 time.sleep(2)
 st.rerun()
