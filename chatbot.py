@@ -14,24 +14,26 @@ st.set_page_config(
 USER_NAME = "Ikki"
 LOCATION = "Tiruchirappalli"
 
+# Secure Client Initialization
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
 # --- 2. THE TOTAL INTERFACE OVERRIDE ---
-# NOTE: All CSS curly braces are doubled {{ }} to avoid f-string SyntaxErrors.
+# Note: CSS curly braces are doubled {{ }} to prevent Python f-string errors.
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
+    /* KINETIC BACKGROUND & CORE THEME */
     .stApp {{
         background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%) !important;
         color: #00d4ff !important;
         font-family: 'Orbitron', sans-serif !important;
-        overflow: hidden !important;
     }}
 
+    /* STARFIELD ANIMATION */
     @keyframes moveStars {{
         from {{ transform: translateY(0px); }}
         to {{ transform: translateY(-2000px); }}
@@ -44,14 +46,23 @@ st.markdown(f"""
         opacity: 0.3;
     }}
 
+    /* DEAD-ZONE KILLER: Removes the blank space at the bottom */
     .main .block-container {{
         padding-top: 2rem !important;
         padding-bottom: 0rem !important;
         max-width: 95% !important;
+        height: 100vh !important;
     }}
-    footer {{display: none !important; visibility: hidden !important;}}
+
+    div[data-testid="stVerticalBlock"] > div:last-child {{
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
+    }}
+
+    header, footer {{visibility: hidden !important; height: 0px !important;}}
     [data-testid="stHeader"] {{display: none !important;}}
 
+    /* HUD RING - TOP LEFT */
     .aegis-hud-container {{
         position: fixed; top: 25px; left: 40px; z-index: 10000;
         display: flex; align-items: center; gap: 20px;
@@ -73,66 +84,48 @@ st.markdown(f"""
     @keyframes spin-slow {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
     @keyframes spin-fast {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
 
+    /* CHAT CAPSULE: Anchored to the edge */
     div[data-testid="stChatInput"] {{
         background-color: transparent !important;
         border: none !important;
         position: fixed !important;
-        bottom: 25px !important;
+        bottom: 15px !important; 
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: 100% !important;
-        max-width: 600px !important;
-        padding: 0 !important;
+        max-width: 650px !important;
         z-index: 10001 !important;
     }}
 
-    div[data-testid="stChatInput"] > div {{
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-
     div[data-testid="stChatInput"] textarea {{
-        background: rgba(0, 212, 255, 0.08) !important;
+        background: rgba(0, 212, 255, 0.1) !important;
         border: 2px solid #00d4ff !important;
-        border-radius: 100px !important; 
+        border-radius: 50px !important; 
         color: #00d4ff !important;
-        padding: 12px 60px 12px 25px !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2) !important;
-        line-height: 1.6 !important;
-        height: 55px !important;
+        box-shadow: 0 0 25px rgba(0, 212, 255, 0.3) !important;
+        padding-left: 20px !important;
     }}
 
-    div[data-testid="stChatInput"] button {{
-        background-color: transparent !important;
-        color: #00d4ff !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        right: 15px !important;
-    }}
-
+    /* Chat Message Bubbles */
     .stChatMessage {{
-        background: rgba(0, 212, 255, 0.03) !important;
+        background: rgba(0, 212, 255, 0.05) !important;
         border-left: 3px solid #00d4ff !important;
         border-radius: 0 15px 15px 0 !important;
-        margin-bottom: 10px !important;
     }}
     </style>
 
     <div class="stars"></div>
     
     <div class="aegis-hud-container">
-        <div class="hud-ring-outer">
-            <div class="hud-ring-inner"></div>
-        </div>
+        <div class="hud-ring-outer"><div class="hud-ring-inner"></div></div>
         <div>
             <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
-            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: {USER_NAME.upper()} | STATUS: ONLINE</p>
+            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: {USER_NAME.upper()} | LOC: {LOCATION.upper()}</p>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. 3D PROJECTION ---
+# --- 3. 3D HOLOGRAM PROJECTION ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -145,35 +138,36 @@ model_uri = get_aegis_model()
 
 if model_uri:
     st.markdown(f'''
-    <div style="position: fixed; bottom: 120px; right: 40px; z-index: 10000;">
+    <div style="position: fixed; bottom: 100px; right: 30px; z-index: 10000;">
         <iframe srcdoc='
             <html>
             <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
             <body style="margin:0; background:transparent; overflow:hidden;">
-                <model-viewer src="{model_uri}" auto-rotate rotation-speed="30deg" 
-                    camera-controls disable-zoom exposure="1.3" shadow-intensity="1"
-                    style="width:280px; height:280px; background:transparent; outline:none;">
+                <model-viewer src="{model_uri}" auto-rotate rotation-speed="40deg" 
+                    camera-controls disable-zoom exposure="1.5"
+                    style="width:300px; height:300px; background:transparent; outline:none;">
                 </model-viewer>
             </body>
             </html>
-        ' style="width:280px; height:280px; border:none;"></iframe>
+        ' style="width:300px; height:300px; border:none;"></iframe>
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 4. CHAT LOGIC ---
+# --- 4. SYSTEM CHAT LOGIC ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Spacers
+# Vertical offset for the top HUD
 st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
-st.markdown('<div style="height: 120px;"></div>', unsafe_allow_html=True)
+# Bottom buffer to prevent overlap
+st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
 
-if prompt := st.chat_input("Command AEGIS..."):
+if prompt := st.chat_input("Input command..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -182,7 +176,7 @@ if prompt := st.chat_input("Command AEGIS..."):
         try:
             response = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": f"You are AEGIS, a futuristic AI. The operator is {USER_NAME} in {LOCATION}."},
+                    {"role": "system", "content": f"You are AEGIS. Respond to {USER_NAME} in {LOCATION}. Maintain a high-tech, helpful persona."},
                     {"role": "user", "content": prompt}
                 ],
                 model="llama-3.3-70b-versatile"
