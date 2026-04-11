@@ -87,7 +87,7 @@ def render_ui():
     ''', unsafe_allow_html=True)
 
     # UPDATED STABLE LINK
-    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/download.glb"
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/main/download.glb"
     
     st.markdown(f'''
     <div class="projection-zone">
