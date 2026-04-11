@@ -1,40 +1,42 @@
 import streamlit as st
 import psutil
-from groq import Groq
+import requests
 import base64
-import os
+from groq import Groq
 
 # --- 1. BOOT SEQUENCE ---
 st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
+# Establish Neural Link
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. THE DATA INJECTOR (With Debugging) ---
-def get_model_uri(file_name):
-    if os.path.exists(file_name):
-        try:
-            with open(file_name, "rb") as f:
-                data = f.read()
-            b64 = base64.b64encode(data).decode()
-            return f"data:application/octet-stream;base64,{b64}", "SUCCESS: File Loaded Locally"
-        except Exception as e:
-            return None, f"ERROR: Could not read file - {e}"
-    else:
-        return None, f"ERROR: File '{file_name}' not found in directory."
+# --- 2. THE REMOTE DATA INJECTOR ---
+@st.cache_data # This keeps the model in memory so it doesn't download every second
+def get_remote_model():
+    # DIRECT RAW LINK to bypass all GitHub blocks
+    url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            b64 = base64.b64encode(response.content).decode()
+            return f"data:application/octet-stream;base64,{b64}"
+        else:
+            return None
+    except:
+        return None
 
-# Initialize URI and check status
-model_uri, debug_msg = get_model_uri("download.glb")
+model_uri = get_remote_model()
 
-# --- 3. HOLOGRAPHIC INTERFACE ---
+# --- 3. INTERFACE DESIGN ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
     header, footer, #MainMenu { visibility: hidden; }
-    .block-container { padding-top: 150px !important; }
+    .block-container { padding: 0 !important; }
 
     .projection-zone {
         position: fixed; bottom: 30px; right: 30px; z-index: 9999;
@@ -42,7 +44,6 @@ st.markdown("""
         background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, rgba(0,0,0,0) 70%);
         border-radius: 50%;
     }
-    .debug-text { color: #555; font-size: 10px; position: fixed; bottom: 5px; left: 5px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -56,7 +57,7 @@ def render_ui():
         </div>
     ''', unsafe_allow_html=True)
 
-    # 3D Hologram - Only renders if the file was found
+    # 3D Hologram
     if model_uri:
         st.markdown(f'''
         <div class="projection-zone">
@@ -67,8 +68,7 @@ def render_ui():
                 </head>
                 <body style="margin: 0; background: transparent; overflow: hidden;">
                     <model-viewer src="{model_uri}" auto-rotate rotation-speed="40deg" 
-                        camera-controls disable-zoom 
-                        exposure="1.3" shadow-intensity="1"
+                        camera-controls disable-zoom exposure="1.3"
                         style="width: 320px; height: 320px; background: transparent; outline: none;">
                     </model-viewer>
                 </body>
@@ -77,15 +77,33 @@ def render_ui():
         </div>
         ''', unsafe_allow_html=True)
     else:
-        # If file is missing, show a warning in the projection zone
-        st.markdown(f'''<div class="projection-zone" style="display:flex; align-items:center; justify-content:center; color:red; font-size:12px; text-align:center;">
-            DATA LINK SEVERED:<br>{debug_msg}</div>''', unsafe_allow_html=True)
+        st.error("AEGIS CORE OFFLINE: Could not fetch 3D Data.")
 
-# --- 5. EXECUTION ---
+# --- 5. CHAT ENGINE ---
 render_ui()
-st.markdown(f'<div class="debug-text">System Debug: {debug_msg}</div>', unsafe_allow_html=True)
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# Display Chat
+for m in st.session_state.history:
+    with st.chat_message(m["role"]):
+        st.markdown(m["content"])
+
+# Command Input
 if cmd := st.chat_input("Command AEGIS..."):
+    st.session_state.history.append({"role": "user", "content": cmd})
     with st.chat_message("user"):
-        st.write(cmd)
-    # Chat logic remains same...
+        st.markdown(cmd)
+    
+    with st.chat_message("assistant"):
+        try:
+            chat = client.chat.completions.create(
+                messages=[{"role": "user", "content": cmd}],
+                model="llama-3.3-70b-versatile"
+            )
+            ans = chat.choices[0].message.content
+            st.markdown(ans)
+            st.session_state.history.append({"role": "assistant", "content": ans})
+        except Exception as e:
+            st.error(f"Neural Error: {e}")
