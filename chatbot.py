@@ -2,122 +2,133 @@ import streamlit as st
 import psutil
 import time
 
-# --- INITIAL CONFIG ---
-st.set_page_config(page_title="AEGIS HUD", layout="wide", initial_sidebar_state="collapsed")
+# --- CONFIG & THEME ---
+st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
-# --- STARK INDUSTRIES STYLING ---
+# --- ADVANCED STARK CSS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-    /* Background & Main Font */
+    /* Background and Global Styles */
     .stApp {
         background-color: #060b10;
         color: #00d4ff;
         font-family: 'Orbitron', sans-serif;
     }
 
-    /* Hide Streamlit Branding */
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
+    /* Push main content down to avoid the floating HUD */
+    .block-container {
+        padding-top: 150px !important;
+    }
 
-    /* Floating HUD Container */
-    .floating-hud {
+    /* Hide Streamlit elements for a cleaner OS feel */
+    header, footer, #MainMenu {visibility: hidden;}
+
+    /* THE FLOATING HEADER */
+    .aegis-header-container {
         position: fixed;
-        top: 30px;
+        top: 20px;
         left: 30px;
-        z-index: 1000;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 25px;
         pointer-events: none;
+    }
+
+    /* The Text Block next to the Circle */
+    .aegis-info-block {
+        border-left: 3px solid #00d4ff;
+        padding-left: 20px;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        justify-content: center;
     }
 
-    /* SVG Animation */
+    .title-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px #00d4ff;
+        margin: 0;
+    }
+
+    .sub-text {
+        font-size: 0.7rem;
+        letter-spacing: 1px;
+        opacity: 0.8;
+        margin-top: 5px;
+    }
+
+    /* Ring Animation */
     .ring-circle {
-        transition: stroke-dashoffset 0.8s ease-in-out;
+        transition: stroke-dashoffset 0.8s ease;
         transform: rotate(-90deg);
         transform-origin: center;
-        filter: drop-shadow(0 0 12px #00d4ff);
     }
-
-    /* HUD Text Styling */
-    .hud-label {
-        position: absolute;
-        top: 85px;
-        text-align: center;
-        width: 100%;
-    }
-
-    .percent-val { font-size: 1.8rem; font-weight: bold; text-shadow: 0 0 10px #00d4ff; }
-    .sub-label { font-size: 0.5rem; letter-spacing: 2px; opacity: 0.8; }
-
-    /* Custom Scrollbar for that Tech Look */
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: #060b10; }
-    ::-webkit-scrollbar-thumb { background: #1a3a4a; border-radius: 10px; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HUD LOGIC ---
-def render_floating_hud():
-    # Calculate System Health (100 - CPU Usage)
-    cpu = psutil.cpu_percent()
-    health = 100 - cpu
+# --- HUD GENERATOR ---
+def render_aegis_hud():
+    # Fetch real system stats
+    cpu_usage = psutil.cpu_percent()
+    integrity = 100 - cpu_usage
     
-    # SVG Constants (Circumference for R=80 is ~502)
+    # SVG Math (R=80, Circumference ~502)
     circum = 502
-    offset = circum - (health / 100) * circum
+    offset = circum - (integrity / 100) * circum
+    color = "#ff4b2b" if integrity < 30 else "#00d4ff"
     
-    # Alert Color Logic
-    color = "#ff4b2b" if health < 30 else "#00d4ff"
-    
+    # Floating HTML structure
     hud_html = f"""
-    <div class="floating-hud">
-        <svg width="220" height="220">
-            <circle stroke="#1a3a4a" stroke-width="4" fill="transparent" r="80" cx="110" cy="110"/>
-            <circle class="ring-circle" stroke="{color}" stroke-width="10" 
-                    stroke-dasharray="{circum}" stroke-dashoffset="{offset}" 
-                    stroke-linecap="round" fill="transparent" r="80" cx="110" cy="110"
-                    style="filter: drop-shadow(0 0 8px {color});"/>
-        </svg>
-        <div class="hud-label">
-            <div class="percent-val" style="color: {color};">{int(health)}%</div>
-            <div class="sub-label" style="color: {color};">SYS_INTEGRITY</div>
+    <div class="aegis-header-container">
+        <div style="position: relative; width: 120px; height: 120px;">
+            <svg width="120" height="120" viewBox="0 0 220 220">
+                <circle stroke="#1a3a4a" stroke-width="4" fill="transparent" r="80" cx="110" cy="110"/>
+                <circle class="ring-circle" stroke="{color}" stroke-width="12" 
+                        stroke-dasharray="{circum}" stroke-dashoffset="{offset}" 
+                        stroke-linecap="round" fill="transparent" r="80" cx="110" cy="110"
+                        style="filter: drop-shadow(0 0 8px {color});"/>
+            </svg>
+            <div style="position: absolute; top: 40px; left: 0; width: 100%; text-align: center;">
+                <div style="color: {color}; font-size: 1.2rem; font-weight: bold;">{int(integrity)}%</div>
+                <div style="color: {color}; font-size: 0.4rem; letter-spacing: 1px;">INTEGRITY</div>
+            </div>
+        </div>
+        
+        <div class="aegis-info-block">
+            <p class="title-text">AEGIS // NEURAL INTERFACE</p>
+            <p class="sub-text">USER: IKKI | LOC: TIRUCHIRAPPALLI | STATUS: ACTIVE</p>
         </div>
     </div>
     """
     st.markdown(hud_html, unsafe_allow_html=True)
 
-# --- INTERFACE LAYOUT ---
-render_floating_hud()
+# --- EXECUTION ---
+render_aegis_hud()
 
-st.write(f"### AEGIS // NEURAL INTERFACE")
-st.write(f"**USER:** IKKI | **LOC:** TIRUCHIRAPPALLI")
-st.write("---")
-
-# Chat Container
+# Chat Logic (Memory Persistent)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display messages
+# Display conversation
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Chat Input
+# Command Input
 if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Simulated Response Logic
     with st.chat_message("assistant"):
-        response = f"Processing '{prompt}'... Terminal link established."
+        response = f"System analysis of '{prompt}' complete. Deploying response protocols."
         st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-# This forces the page to refresh and update the CPU health bar every 2 seconds
+# Refresh the Integrity bar every 2 seconds
 time.sleep(2)
 st.rerun()
