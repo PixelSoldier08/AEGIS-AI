@@ -8,14 +8,13 @@ from groq import Groq
 st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
 USER_NAME = "Ikki"
-LOCATION = "Tiruchirappalli"
 
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. HOLOGRAPHIC STYLING (EXACT SIZE MATCH) ---
+# --- 2. THE CAPSULE OVERRIDE (EXACT IMAGE MATCH) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
@@ -23,42 +22,40 @@ st.markdown(f"""
     .stApp {{ background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }}
     header, footer, #MainMenu {{ visibility: hidden; }}
     
-    /* HUD Header */
+    /* === THE PRECISION CAPSULE FIX === */
+    /* This targets the outer wrapper that Streamlit uses */
+    [data-testid="stChatInput"] {{
+        position: fixed !important;
+        bottom: 40px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 100% !important;
+        max-width: 650px !important; /* This controls the exact 'short' size of the capsule */
+        background-color: transparent !important;
+        z-index: 10001 !important;
+    }}
+
+    /* This styles the actual text box inside */
+    .stChatInput textarea {{
+        background: rgba(0, 212, 255, 0.08) !important;
+        border: 2px solid #00d4ff !important;
+        border-radius: 100px !important; /* Perfect capsule curves */
+        color: #00d4ff !important;
+        padding: 15px 25px !important;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3) !important;
+    }}
+
+    /* Remove the default Streamlit grey border/background */
+    [data-testid="stChatInput"] > div {{
+        background-color: transparent !important;
+        border: none !important;
+    }}
+
     .aegis-hud {{
         position: fixed; top: 20px; left: 30px; z-index: 10000;
         padding: 15px; border-left: 3px solid #00d4ff;
         background: rgba(0, 212, 255, 0.05);
     }}
-
-    /* === THE PRECISION TYPING AREA === */
-    /* 1. This container controls the horizontal width and centering */
-    .stChatInputContainer {{
-        padding-bottom: 50px !important;
-        background-color: transparent !important;
-        border: none !important;
-        width: 60% !important; /* Reduces width to match the image capsule */
-        margin: 0 auto !important; /* Centers the capsule */
-    }}
-    
-    /* 2. This styles the capsule itself */
-    .stChatInput {{
-        background: rgba(0, 212, 255, 0.08) !important;
-        border: 2px solid #00d4ff !important;
-        border-radius: 100px !important; /* Maximum roundness for the capsule look */
-        color: #00d4ff !important;
-        padding: 12px 25px !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.25); /* Neon glow */
-    }}
-
-    /* Adjusting chat message spacing to allow room for the floating bar */
-    .stChatMessage {{ 
-        background: rgba(0, 212, 255, 0.03) !important; 
-        border: 1px solid #00d4ff22 !important; 
-        border-radius: 15px !important;
-        margin-bottom: 20px;
-        max-width: 50%;
-    }}
-    
     </style>
     
     <div class="aegis-hud">
@@ -67,7 +64,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. CORE LOGIC & 3D DATA ---
+# --- 3. SPEECH & 3D (RE-SYNCED) ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -78,22 +75,10 @@ def get_aegis_model():
 
 model_uri = get_aegis_model()
 
-def speak(text):
-    if text:
-        clean_text = text.replace("'", "\\'").replace("\n", " ")
-        st.components.v1.html(f"""
-            <script>
-            window.speechSynthesis.cancel();
-            var msg = new SpeechSynthesisUtterance('{clean_text}');
-            msg.pitch = 0.95; msg.rate = 1.0;
-            window.speechSynthesis.speak(msg);
-            </script>
-        """, height=0)
-
 # --- 4. 3D PROJECTION ---
 if model_uri:
     st.markdown(f'''
-    <div style="position: fixed; bottom: 130px; right: 40px; z-index: 10000;">
+    <div style="position: fixed; bottom: 140px; right: 40px; z-index: 10000;">
         <iframe srcdoc='
             <html>
             <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
@@ -112,27 +97,15 @@ if model_uri:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
+# Using a container with padding so messages don't get hidden behind the floating capsule
+main_chat = st.container()
+with main_chat:
+    st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
+    for m in st.session_state.messages:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"])
+    st.markdown('<div style="height: 120px;"></div>', unsafe_allow_html=True)
 
 if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-        try:
-            response = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": f"You are AEGIS. Be efficient. User is {USER_NAME}."},
-                    {"role": "user", "content": prompt}
-                ],
-                model="llama-3.3-70b-versatile"
-            )
-            ans = response.choices[0].message.content
-            st.markdown(ans)
-            st.session_state.messages.append({"role": "assistant", "content": ans})
-            speak(ans)
-        except Exception as e:
-            st.error(f"NEURAL ERROR: {e}")
+    st.rerun()
