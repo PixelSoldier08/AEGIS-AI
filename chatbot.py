@@ -72,7 +72,7 @@ def render_ui():
 
     # 3D Spider-Logo (Using your NEW .glb file)
     # REPLACE THIS WITH YOUR RAW GITHUB LINK FOR "3dpea.com_download.glb"
-    model_url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/3dpea.com_download.glb"
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/3dpea.com_download.glb"
     
     st.markdown('<div class="projection-zone">', unsafe_allow_html=True)
     st.components.v1.html(f"""
