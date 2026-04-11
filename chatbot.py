@@ -3,7 +3,7 @@ import requests
 import base64
 from groq import Groq
 
-# --- 1. SYSTEM CORE ---
+# --- 1. CORE SYSTEM ---
 st.set_page_config(
     page_title="AEGIS MARK I", 
     layout="wide", 
@@ -21,24 +21,31 @@ try:
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. THE REFINED INTERFACE ---
+# --- 2. THE UI STABILIZER ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
-    /* CORE THEME */
-    .stApp {{
+    /* FORCE BACKGROUND OVER EVERYTHING */
+    /* This kills the black bar at the bottom */
+    [data-testid="stAppViewContainer"], [data-testid="stMainInterfaceContents"], .stApp {{
         background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%) !important;
-        color: #00d4ff !important;
-        font-family: 'Orbitron', sans-serif !important;
+        background-attachment: fixed !important;
     }}
 
-    /* FIXING THE COMMAND BOX (Bringing it back) */
+    /* KILL STREAMLIT'S RESERVED BOTTOM SPACE */
+    [data-testid="stBottom"] {{
+        background: transparent !important;
+    }}
+    
+    .main .block-container {{
+        padding-bottom: 5rem !important;
+    }}
+
+    /* INPUT CAPSULE */
     div[data-testid="stChatInput"] {{
-        position: fixed !important;
-        bottom: 20px !important;
-        padding: 0 10% !important;
-        z-index: 10000 !important;
+        border: none !important;
+        background: transparent !important;
     }}
 
     div[data-testid="stChatInput"] textarea {{
@@ -49,18 +56,11 @@ st.markdown(f"""
         box-shadow: 0 0 15px rgba(0, 212, 255, 0.3) !important;
     }}
 
-    /* HIDING THE GREY BOX STRUCTURE AROUND INPUT */
-    div[data-testid="stChatInput"] > div {{
-        background-color: transparent !important;
-        border: none !important;
-    }}
-
-    /* HUD ELEMENTS */
+    /* HUD */
     header, footer, [data-testid="stHeader"] {{ visibility: hidden !important; }}
-
     .aegis-hud {{
         position: fixed; top: 20px; left: 30px; z-index: 1000;
-        color: #00d4ff;
+        color: #00d4ff; font-family: 'Orbitron', sans-serif;
     }}
     </style>
     <div class="aegis-hud">
@@ -69,7 +69,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. THE "WHITE BOX" KILLER (3D Model) ---
+# --- 3. THE "GHOST" MODEL (No White Box) ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -86,32 +86,20 @@ if model_uri:
             <html>
             <head>
                 <style>
-                    /* Force everything to be transparent */
-                    html, body {{ 
-                        background: transparent !important; 
-                        margin: 0; 
-                        padding: 0; 
-                        overflow: hidden; 
-                    }}
+                    /* Absolute kill on white backgrounds */
+                    html, body {{ background: transparent !important; margin: 0; overflow: hidden; }}
                     model-viewer {{
-                        width: 300px; 
-                        height: 300px; 
+                        width: 300px; height: 300px; 
                         background-color: transparent !important;
                         --background-color: transparent !important;
+                        --poster-color: transparent !important;
                         outline: none;
                     }}
                 </style>
             </head>
             <body>
                 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-                <model-viewer 
-                    src="{model_uri}" 
-                    auto-rotate 
-                    camera-controls 
-                    touch-action="pan-y"
-                    shadow-intensity="0"
-                    exposure="1">
-                </model-viewer>
+                <model-viewer src="{model_uri}" auto-rotate camera-controls disable-zoom shadow-intensity="0" exposure="1"></model-viewer>
             </body>
             </html>
         ' style="width:300px; height:300px; border:none; background:transparent;" allowtransparency="true"></iframe>
@@ -119,28 +107,25 @@ if model_uri:
     ''', unsafe_allow_html=True)
 
 # --- 4. CHAT LOGIC ---
-st.markdown('<div style="height: 80px;"></div>', unsafe_allow_html=True)
+st.markdown('<div style="height: 60px;"></div>', unsafe_allow_html=True)
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
-        st.write(m["content"])
+        st.markdown(m["content"])
 
 if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
-        st.write(prompt)
+        st.markdown(prompt)
 
     with st.chat_message("assistant"):
         try:
             response = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": f"You are AEGIS. Respond to {USER_NAME}."},
-                    *st.session_state.messages
-                ],
+                messages=[{"role": "system", "content": f"You are AEGIS, talking to {USER_NAME}."}, *st.session_state.messages],
                 model="llama-3.3-70b-versatile"
             )
             ans = response.choices[0].message.content
-            st.write(ans)
+            st.markdown(ans)
             st.session_state.messages.append({"role": "assistant", "content": ans})
         except Exception as e:
             st.error(f"NEURAL ERROR: {e}")
