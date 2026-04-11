@@ -4,43 +4,44 @@ import time
 from groq import Groq
 from tavily import TavilyClient
 
-# --- 1. SYSTEM INITIALIZATION ---
+# --- 1. BOOT SEQUENCE ---
 st.set_page_config(page_title="AEGIS MARK I", layout="wide", initial_sidebar_state="collapsed")
 
+# Initialize Systems
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     tavily = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
 except Exception as e:
-    st.error(f"NEURAL LINK ERROR: Check Secrets. {e}")
+    st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. HOLOGRAPHIC INTERFACE CSS ---
+# --- 2. HOLOGRAPHIC STYLING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
     .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
     header, footer, #MainMenu { visibility: hidden; }
-    .block-container { padding-top: 160px !important; }
+    .block-container { padding-top: 150px !important; }
 
-    /* Fixed HUD Matrix */
+    /* Fixed HUD Matrix (Top Left) */
     .aegis-header {
         position: fixed; top: 25px; left: 40px; z-index: 9999;
         display: flex; align-items: center; gap: 25px;
     }
     
-    /* 3D Hologram Zone (Pinned to Bottom Right) */
+    /* 3D Hologram Zone (Bottom Right) */
     .projection-zone {
         position: fixed; bottom: 30px; right: 30px; z-index: 9999;
-        width: 300px; height: 300px;
+        width: 320px; height: 320px;
         background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, rgba(0,0,0,0) 70%);
         border-radius: 50%;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
     }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. SPEECH & INTEL ENGINES ---
 def speak(text):
+    """Neural Voice Synthesis - Stark Industries Pitch"""
     if text:
         clean_text = text.replace("'", "\\'").replace("\n", " ")
         st.components.v1.html(f"""
@@ -58,7 +59,7 @@ def get_aegis_intel(prompt):
         context = search['results']
         chat = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": f"You are AEGIS, an AI for Ikki in Tiruchirappalli. Use context: {context}. Be professional and technical."},
+                {"role": "system", "content": f"You are AEGIS for Ikki in Tiruchirappalli. Use context: {context}. Be professional and technical."},
                 {"role": "user", "content": prompt}
             ],
             model="llama-3.3-70b-versatile"
@@ -69,6 +70,7 @@ def get_aegis_intel(prompt):
 
 # --- 4. HUD & 3D RENDERING ---
 def render_ui():
+    # HUD Core Logic
     integrity = int(100 - psutil.cpu_percent())
     offset = 502 - (integrity / 100) * 502
     
@@ -87,9 +89,9 @@ def render_ui():
     </div>
     ''', unsafe_allow_html=True)
 
-    # --- THE CRITICAL FIX ---
-    # This URL adds "?raw=true" so GitHub sends the actual file to the viewer
-    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/download.glb"
+    # --- UPDATED 3D MODEL LINK ---
+    # Pointing to the raw file data of your download.glb
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/blob/main/download.glb?raw=true"
     
     st.markdown(f'''
     <div class="projection-zone">
@@ -98,36 +100,42 @@ def render_ui():
             <body style="margin: 0; background: transparent; overflow: hidden;">
                 <model-viewer src="{model_url}" auto-rotate rotation-speed="40deg" 
                     camera-controls disable-zoom 
-                    style="width: 300px; height: 300px; background: transparent; outline: none;"
+                    style="width: 320px; height: 320px; background: transparent; outline: none;"
                     exposure="1.2" shadow-intensity="1">
                 </model-viewer>
             </body>
-        ' style="width: 300px; height: 300px; border: none; background: transparent;"></iframe>
+        ' style="width: 320px; height: 320px; border: none; background: transparent;"></iframe>
     </div>
     ''', unsafe_allow_html=True)
 
-# --- 5. CHAT ENGINE ---
+# --- 5. EXECUTION LOOP ---
 render_ui()
 
 if "history" not in st.session_state: st.session_state.history = []
-if "last_ans" not in st.session_state: st.session_state.last_ans = None
+if "last_response" not in st.session_state: st.session_state.last_response = None
 
+# Display Chat History
 for m in st.session_state.history:
     with st.chat_message(m["role"]): st.markdown(m["content"])
 
+# Handle Input
 if cmd := st.chat_input("Command AEGIS..."):
     st.session_state.history.append({"role": "user", "content": cmd})
     with st.chat_message("user"): st.markdown(cmd)
+    
     with st.chat_message("assistant"):
-        ans = get_aegis_intel(cmd)
-        st.markdown(ans)
-        st.session_state.history.append({"role": "assistant", "content": ans})
-        st.session_state.last_ans = ans
-        st.rerun()
+        with st.spinner("SYNAPSING..."):
+            ans = get_aegis_intel(cmd)
+            st.markdown(ans)
+            st.session_state.history.append({"role": "assistant", "content": ans})
+            st.session_state.last_response = ans
+            st.rerun()
 
-if st.session_state.last_ans:
-    speak(st.session_state.last_ans)
-    st.session_state.last_ans = None
+# Trigger Voice synthesis
+if st.session_state.last_response:
+    speak(st.session_state.last_response)
+    st.session_state.last_response = None
 
+# HUD Refresh
 time.sleep(3)
 st.rerun()
