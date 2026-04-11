@@ -105,7 +105,7 @@ def render_interface():
     ''', unsafe_allow_html=True)
 
     # 3D Spider Projection - Locked to Bottom Right
-    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/raw/refs/heads/main/Spider.glb"
+    model_url = "https://github.com/PixelSoldier08/AEGIS-AI/blob/main/Spider.glb?raw=true"
     
     st.markdown(f'''
     <div class="projection-zone">
