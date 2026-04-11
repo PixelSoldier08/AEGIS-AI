@@ -12,12 +12,33 @@ try:
 except Exception as e:
     st.error(f"NEURAL LINK ERROR: {e}")
 
-# --- 2. THE TOTAL HUD & CAPSULE OVERRIDE ---
+# --- 2. MOTION BACKGROUND & INTERFACE OVERRIDE ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     
-    .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
+    /* ANIMATED MOTION BACKGROUND */
+    .stApp {
+        background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+        overflow: hidden;
+        color: #00d4ff;
+        font-family: 'Orbitron', sans-serif;
+    }
+
+    /* Star Layers */
+    @keyframes moveStars {
+        from { transform: translateY(0px); }
+        to { transform: translateY(-2000px); }
+    }
+
+    .stars {
+        position: fixed; top: 0; left: 0; width: 100%; height: 2000px;
+        background: transparent url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
+        z-index: -1;
+        animation: moveStars 100s linear infinite;
+        opacity: 0.3;
+    }
+
     header, footer, #MainMenu { visibility: hidden; }
 
     /* === DUAL-LAYER HUD RING === */
@@ -33,45 +54,38 @@ st.markdown("""
         animation: spin-slow 8s linear infinite;
     }
     .hud-ring-inner {
-        width: 50px; height: 50px;
+        width: 45px; height: 45px;
         border: 3px solid #00d4ff;
         border-top: 3px solid transparent;
         border-radius: 50%;
         animation: spin-fast 1.5s linear infinite;
     }
-    @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes spin-fast { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes spin-fast { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* === THE CAPSULE FIX (VERSION 7.0) === */
-    /* This completely hides the 'Box' wrapper */
+    /* === CAPSULE FIX (STABLE) === */
     div[data-testid="stChatInput"] {
         background-color: transparent !important;
         border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
         position: fixed !important;
         bottom: 40px !important;
+        z-index: 10001 !important;
     }
 
-    /* Target the inner div to stop the grey background */
     div[data-testid="stChatInput"] > div {
         background-color: transparent !important;
         border: none !important;
-        box-shadow: none !important;
     }
 
-    /* The actual Capsule Body */
     div[data-testid="stChatInput"] textarea {
-        background: rgba(0, 212, 255, 0.07) !important;
-        border: 2px solid #00d4ff !important;
+        background: rgba(0, 212, 255, 0.05) !important;
+        border: 1px solid rgba(0, 212, 255, 0.4) !important;
         border-radius: 100px !important; 
         color: #00d4ff !important;
         padding: 12px 60px 12px 25px !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.25) !important;
-        line-height: 1.6 !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.1) !important;
     }
 
-    /* Center the Send Button inside the Capsule */
     div[data-testid="stChatInput"] button {
         background-color: transparent !important;
         color: #00d4ff !important;
@@ -79,25 +93,22 @@ st.markdown("""
         transform: translateY(-50%) !important;
         right: 15px !important;
     }
-    
-    div[data-testid="stChatInput"] button:hover {
-        color: #fff !important;
-        filter: drop-shadow(0 0 8px #00d4ff);
-    }
     </style>
 
+    <div class="stars"></div>
+    
     <div class="aegis-hud-container">
         <div class="hud-ring-outer">
             <div class="hud-ring-inner"></div>
         </div>
         <div>
             <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
-            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: IKKI | STATUS: ACTIVE</p>
+            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: IKKI | STATUS: KINETIC</p>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. 3D & CHAT ENGINE ---
+# --- 3. 3D PROJECTION ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -125,10 +136,11 @@ if model_uri:
     </div>
     ''', unsafe_allow_html=True)
 
+# --- 4. CHAT SYSTEM ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Spacer
+# Spacer for HUD
 st.markdown('<div style="height: 120px;"></div>', unsafe_allow_html=True)
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
@@ -139,7 +151,7 @@ if prompt := st.chat_input("Command AEGIS..."):
     with st.chat_message("assistant"):
         try:
             response = client.chat.completions.create(
-                messages=[{"role": "system", "content": "You are AEGIS. Be brief."},
+                messages=[{"role": "system", "content": "You are AEGIS. Respond like a futuristic AI."},
                           {"role": "user", "content": prompt}],
                 model="llama-3.3-70b-versatile"
             )
