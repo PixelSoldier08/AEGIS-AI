@@ -20,78 +20,84 @@ st.markdown("""
     .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
     header, footer, #MainMenu { visibility: hidden; }
 
-    /* === CIRCULAR HUD RESTORATION === */
-    .aegis-hud-circle {
+    /* === DUAL-LAYER HUD RING === */
+    .aegis-hud-container {
         position: fixed; top: 25px; left: 40px; z-index: 10000;
-        display: flex; align-items: center; gap: 15px;
+        display: flex; align-items: center; gap: 20px;
     }
-    .hud-ring {
-        width: 60px; height: 60px;
+    .hud-ring-outer {
+        width: 70px; height: 70px;
+        border: 2px dashed #00d4ff;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        animation: spin-slow 8s linear infinite;
+    }
+    .hud-ring-inner {
+        width: 50px; height: 50px;
         border: 3px solid #00d4ff;
         border-top: 3px solid transparent;
         border-radius: 50%;
-        animation: spin 2s linear infinite;
-        filter: drop-shadow(0 0 5px #00d4ff);
+        animation: spin-fast 1.5s linear infinite;
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spin-fast { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* === THE FINAL CAPSULE FIX === */
-    /* This kills the grey box background entirely */
-    [data-testid="stChatInput"] {
+    /* === THE CAPSULE FIX (VERSION 7.0) === */
+    /* This completely hides the 'Box' wrapper */
+    div[data-testid="stChatInput"] {
         background-color: transparent !important;
         border: none !important;
-        position: fixed !important;
-        bottom: 30px !important;
+        box-shadow: none !important;
         padding: 0 !important;
+        position: fixed !important;
+        bottom: 40px !important;
     }
 
-    /* This targets the inner container that forces the square shape */
-    [data-testid="stChatInput"] > div {
+    /* Target the inner div to stop the grey background */
+    div[data-testid="stChatInput"] > div {
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
     }
 
     /* The actual Capsule Body */
-    [data-testid="stChatInput"] textarea {
+    div[data-testid="stChatInput"] textarea {
         background: rgba(0, 212, 255, 0.07) !important;
         border: 2px solid #00d4ff !important;
         border-radius: 100px !important; 
         color: #00d4ff !important;
-        padding: 14px 60px 14px 25px !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2) !important;
-        height: 55px !important;
-        min-height: 55px !important;
+        padding: 12px 60px 12px 25px !important;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.25) !important;
+        line-height: 1.6 !important;
     }
 
-    /* Centering the Enter Button inside the Capsule */
-    [data-testid="stChatInput"] button {
+    /* Center the Send Button inside the Capsule */
+    div[data-testid="stChatInput"] button {
         background-color: transparent !important;
-        border: none !important;
         color: #00d4ff !important;
-        right: 15px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        right: 15px !important;
     }
-
-    [data-testid="stChatInput"] button:hover {
+    
+    div[data-testid="stChatInput"] button:hover {
         color: #fff !important;
         filter: drop-shadow(0 0 8px #00d4ff);
     }
     </style>
 
-    <div class="aegis-hud-circle">
-        <div class="hud-ring"></div>
+    <div class="aegis-hud-container">
+        <div class="hud-ring-outer">
+            <div class="hud-ring-inner"></div>
+        </div>
         <div>
-            <h2 style="margin:0; font-size: 1.1rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
-            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: IKKI</p>
+            <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px;">AEGIS // MARK I</h2>
+            <p style="margin:0; font-size: 0.6rem; opacity: 0.6;">OPERATOR: IKKI | STATUS: ACTIVE</p>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. 3D & CHAT LOGIC ---
+# --- 3. 3D & CHAT ENGINE ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -104,11 +110,11 @@ model_uri = get_aegis_model()
 
 if model_uri:
     st.markdown(f'''
-    <div style="position: fixed; bottom: 120px; right: 40px; z-index: 10000;">
+    <div style="position: fixed; bottom: 130px; right: 40px; z-index: 10000;">
         <iframe srcdoc='
             <html>
             <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-            <body style="margin:0; background:transparent;">
+            <body style="margin:0; background:transparent; overflow:hidden;">
                 <model-viewer src="{model_uri}" auto-rotate rotation-speed="30deg" 
                     camera-controls disable-zoom exposure="1.3"
                     style="width:280px; height:280px; background:transparent; outline:none;">
@@ -122,13 +128,23 @@ if model_uri:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Message display
-st.markdown('<div style="height: 100px;"></div>', unsafe_allow_html=True)
+# Spacer
+st.markdown('<div style="height: 120px;"></div>', unsafe_allow_html=True)
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
 if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    # Assistant processing here
+    with st.chat_message("assistant"):
+        try:
+            response = client.chat.completions.create(
+                messages=[{"role": "system", "content": "You are AEGIS. Be brief."},
+                          {"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile"
+            )
+            ans = response.choices[0].message.content
+            st.markdown(ans)
+            st.session_state.messages.append({"role": "assistant", "content": ans})
+        except: st.error("Neural Link Failed.")
     st.rerun()
