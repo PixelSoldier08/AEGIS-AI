@@ -92,7 +92,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# --- 3. 3D HOLOGRAM PROJECTION ---
+# --- 3. STABILIZED 3D HOLOGRAM (FORCE TRANSPARENCY) ---
 @st.cache_data
 def get_aegis_model():
     url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
@@ -103,23 +103,43 @@ def get_aegis_model():
 
 model_uri = get_aegis_model()
 if model_uri:
-    # We use a higher z-index and pointer-events to ensure you can click it
     st.markdown(f'''
     <div style="position: fixed; bottom: 80px; right: 20px; z-index: 999999; pointer-events: auto;">
         <iframe srcdoc='
             <html>
-            <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-            <body style="margin:0; background:transparent;">
-                <model-viewer src="{model_uri}" 
-                    auto-rotate rotation-speed="30deg" 
+            <head>
+                <style>
+                    /* Force the browser to render nothing behind the model */
+                    html, body {{ 
+                        margin: 0; 
+                        padding: 0; 
+                        background: transparent !important; 
+                        overflow: hidden;
+                    }}
+                    model-viewer {{
+                        width: 300px; 
+                        height: 300px; 
+                        --background-color: transparent !important; /* Specific model-viewer fix */
+                        background-color: transparent !important;
+                        outline: none;
+                    }}
+                </style>
+            </head>
+            <body>
+                <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+                <model-viewer 
+                    src="{model_uri}" 
+                    auto-rotate 
+                    rotation-speed="30deg" 
                     camera-controls 
                     touch-action="pan-y"
                     disable-zoom="false"
-                    style="width:300px; height:300px; background:transparent; outline:none;">
+                    shadow-intensity="0"
+                    exposure="1.2">
                 </model-viewer>
             </body>
             </html>
-        ' style="width:300px; height:300px; border:none;"></iframe>
+        ' style="width:300px; height:300px; border:none; background:transparent;"></iframe>
     </div>
     ''', unsafe_allow_html=True)
 
