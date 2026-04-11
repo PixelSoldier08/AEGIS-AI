@@ -1,97 +1,81 @@
 import streamlit as st
-from groq import Groq
-import tools
+import psutil
+import time
 
-# --- HUD & STARK INTERFACE CSS ---
-st.set_page_config(page_title="AEGIS GLOBAL HUB", page_icon="💠", layout="wide")
+# --- STYLING (Integrating the Stark Look) ---
+st.set_page_config(page_title="AEGIS MARK I", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp { background: radial-gradient(circle at center, #0a192f 0%, #050a10 100%); color: #00d4ff; }
-    .stChatMessage { border: 1px solid #00d4ff; border-radius: 10px; background: rgba(10, 25, 47, 0.8) !important; }
-    footer {visibility: hidden;}
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+    .stApp { background-color: #060b10; color: #00d4ff; font-family: 'Orbitron', sans-serif; }
+    
+    /* Glowing Circular HUD */
+    .hud-container {
+        display: flex; justify-content: center; align-items: center; position: relative; height: 250px;
+    }
+    .ring-circle {
+        transition: stroke-dashoffset 0.5s ease;
+        transform: rotate(-90deg); transform-origin: 50% 50%;
+        filter: drop-shadow(0 0 10px #00d4ff);
+    }
+    .hud-text { position: absolute; text-align: center; }
+    .percent { font-size: 2rem; font-weight: bold; text-shadow: 0 0 10px #00d4ff; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- NEURAL LINK ---
-try:
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-except:
-    st.error("📡 NEURAL LINK ERROR: Check API Keys in Streamlit Secrets.")
-    st.stop()
+# --- HUD COMPONENT FUNCTION ---
+def render_hud():
+    # Drive the health bar using real System Integrity (100 - CPU Usage)
+    health = 100 - psutil.cpu_percent()
+    offset = 502 - (health / 100) * 502
+    color = "#ff4b2b" if health < 30 else "#00d4ff"
+    
+    hud_html = f"""
+    <div class="hud-container">
+        <svg width="220" height="220">
+            <circle stroke="#1a3a4a" stroke-width="5" fill="transparent" r="80" cx="110" cy="110"/>
+            <circle class="ring-circle" stroke="{color}" stroke-width="10" 
+                    stroke-dasharray="502" stroke-dashoffset="{offset}" 
+                    fill="transparent" r="80" cx="110" cy="110"/>
+        </svg>
+        <div class="hud-text">
+            <div class="percent" style="color: {color};">{int(health)}%</div>
+            <div style="font-size: 0.6rem; letter-spacing: 2px;">SYS_INTEGRITY</div>
+        </div>
+    </div>
+    """
+    st.sidebar.markdown(hud_html, unsafe_allow_html=True)
 
-# --- MEMORY CORE (The Name & Background Lock) ---
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "system", 
-            "content": "You are AEGIS, a sophisticated AI created by and for Ikki, a B.Sc Physics student. Address him as Ikki. Be conversational, witty, and tactical. Never forget his name. Use his physics background for analogies."
-        }
-    ]
+# --- MAIN INTERFACE ---
+st.title("AEGIS // NEURAL INTERFACE")
 
-# --- SIDEBAR HUD ---
+# Sidebar for System Stats (HUD)
 with st.sidebar:
-    st.title("💠 AEGIS HUD")
-    st.write(f"**OPERATOR:** IKKI")
-    st.write("🛰️ **STATUS:** ONLINE")
-    st.markdown("---")
-    
-    # CRITICAL: Browsers block voice until a button is clicked. 
-    if st.button("🔊 INITIALIZE VOICE"):
-        st.components.v1.html("""
-            <script>
-            var msg = new SpeechSynthesisUtterance('Voice protocols active. Ready for input, Ikki.');
-            window.speechSynthesis.speak(msg);
-            </script>
-        """, height=0)
-    
-    if st.button("🔴 RESET CORE"):
-        st.session_state.messages = [st.session_state.messages[0]]
-        st.rerun()
+    st.header("CORE STATUS")
+    render_hud()
+    st.write("---")
+    st.write(f"Location: Tiruchirappalli")
+    st.write(f"User: Ikki")
 
-# --- CHAT INTERFACE ---
-st.title("AEGIS COMMAND INTERFACE")
+# Chat Interface Logic (From our shared link)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# Display conversation (skipping the system instructions)
-for msg in st.session_state.messages:
-    if msg["role"] != "system":
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-if prompt := st.chat_input("Broadcast command..."):
+if prompt := st.chat_input("Command AEGIS..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # ROUTING: Check for Live Updates
-        context = ""
-        live_keywords = ["news", "today", "update", "latest", "weather", "who is"]
-        if any(w in prompt.lower() for w in live_keywords):
-            with st.status("📡 Scanning External Satellite Data..."):
-                context = tools.web_search(prompt)
+        response = f"System analysis of '{prompt}' complete. Standing by for execution."
+        st.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
-        # BRAIN EXECUTION
-        # Temperature 0.8 makes him talk like a person, not a textbook
-        chat_completion = client.chat.completions.create(
-            messages=st.session_state.messages + [{"role": "user", "content": f"Context: {context}\n\n{prompt}"}],
-            model="llama-3.1-8b-instant",
-            temperature=0.8,
-        )
-        
-        reply = chat_completion.choices[0].message.content
-        st.markdown(reply)
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-
-        # --- VOICE PERSISTENCE ---
-        clean_reply = reply.replace('"', '').replace("'", "")
-        audio_js = f"""
-        <script>
-        window.speechSynthesis.cancel(); 
-        var speech = new SpeechSynthesisUtterance("{clean_reply}");
-        speech.pitch = 0.95;
-        speech.rate = 1.0;
-        window.speechSynthesis.speak(speech);
-        </script>
-        """
-        st.components.v1.html(audio_js, height=0)
+# Refresh trigger to keep the HUD moving
+time.sleep(0.1)
+st.rerun()
