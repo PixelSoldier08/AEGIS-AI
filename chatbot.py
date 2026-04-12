@@ -5,10 +5,9 @@ from streamlit_lottie import st_lottie
 from groq import Groq
 from tavily import TavilyClient
 
-# --- 1. SETUP ---
-st.set_page_config(page_title="AEGIS OS", page_icon="🌐", layout="wide")
+# --- 1. HUD STYLING ---
+st.set_page_config(page_title="AEGIS OS", layout="wide")
 
-# Custom JARVIS/HUD Styling
 st.markdown("""
     <style>
     .stApp { background-color: #060b14; color: #00f2ff; }
@@ -25,89 +24,81 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. THE BRAINS (Using st.secrets) ---
-try:
-    GROQ_KEY = st.secrets["GROQ_API_KEY"]
-    TAVILY_KEY = st.secrets["TAVILY_API_KEY"]
-    
-    client = Groq(api_key=GROQ_KEY)
-    tavily = TavilyClient(api_key=TAVILY_KEY)
-except Exception as e:
-    st.error("Missing API Keys! Please add GROQ_API_KEY and TAVILY_API_KEY to Streamlit Secrets.")
-    st.stop()
+# --- 2. API INITIALIZATION ---
+def get_globals():
+    try:
+        g_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+        t_client = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
+        return g_client, t_client
+    except Exception as e:
+        st.error(f"Configuration Error: Check your Streamlit Secrets! ({e})")
+        return None, None
+
+client, tavily = get_globals()
 
 # --- 3. UTILITIES ---
-def load_lottieurl(url: str):
+def load_lottie(url):
     try:
-        r = requests.get(url, timeout=5)
-        return r.json() if r.status_code == 200 else None
-    except:
-        return None
+        res = requests.get(url, timeout=5)
+        return res.json() if res.status_code == 200 else None
+    except: return None
 
-def speak_web(text):
-    """Voice that works on the Web/Cloud"""
-    clean_text = text.replace("'", "").replace("\n", " ")
-    st.components.v1.html(f"""
-        <script>
-        var msg = new SpeechSynthesisUtterance('{clean_text}');
-        msg.rate = 1.0; msg.pitch = 0.8;
-        window.speechSynthesis.speak(msg);
-        </script>
-    """, height=0)
+def speak(text):
+    clean = text.replace("'", "").replace("\n", " ")
+    st.components.v1.html(f"<script>var m=new SpeechSynthesisUtterance('{clean}');m.rate=1.0;m.pitch=0.8;window.speechSynthesis.speak(m);</script>", height=0)
 
-# --- 4. THE BOOT SEQUENCE ---
+# --- 4. BOOT ANIMATION ---
 if 'booted' not in st.session_state:
     intro = st.empty()
     with intro.container():
-        lottie_json = load_lottieurl("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if lottie_json:
-                st_lottie(lottie_json, height=400, key="boot")
+        lottie_json = load_lottie("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            if lottie_json: st_lottie(lottie_json, height=400, key="boot")
             bar = st.progress(0)
-            status = st.empty()
-            for i, s in enumerate(["INITIALIZING AEGIS...", "SYNCING NEURAL NETS...", "SYSTEMS ONLINE."]):
-                status.markdown(f"`{s}`")
+            msg = st.empty()
+            for i, s in enumerate(["LOADING AEGIS...", "SYNCING...", "ONLINE."]):
+                msg.markdown(f"`{s}`")
                 bar.progress((i + 1) * 33)
-                time.sleep(0.8)
-            speak_web("Welcome home, sir. AEGIS is operational.")
+                time.sleep(0.7)
+            speak("Welcome home, sir.")
     st.session_state.booted = True
     intro.empty()
 
-# --- 5. CHAT & REASONING ---
-if st.session_state.get('booted'):
+# --- 5. CHAT LOGIC ---
+if st.session_state.get('booted') and client:
     st.title("AEGIS v2.0")
-
+    
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
     for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"])
+        with st.chat_message(m["role"]): st.markdown(m["content"])
 
     if prompt := st.chat_input("Command AEGIS..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        with st.chat_message("user"): st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing Data Streams..."):
-                # A. Web Search
+            with st.spinner("Analyzing..."):
+                # A. Fail-safe Search
+                context = "No live data found."
                 try:
-                    search = tavily.search(query=prompt, search_depth="basic")
+                    search = tavily.search(query=prompt)
                     context = str(search['results'])
-                except:
-                    context = "No live data available."
+                except: pass
 
-                # B. AI Response
-                chat_completion = client.chat.completions.create(
-                    model="llama3-8b-8192",
-                    messages=[
-                        {"role": "system", "content": f"You are AEGIS, a highly advanced AI. Use this context: {context}"},
-                        {"role": "user", "content": prompt}
-                    ]
-                )
-                response = chat_completion.choices[0].message.content
-                st.markdown(response)
+                # B. Fail-safe Reasoning
+                try:
+                    response = client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=[
+                            {"role": "system", "content": f"You are AEGIS. Use this info: {context}"},
+                            {"role": "user", "content": prompt}
+                        ]
+                    ).choices[0].message.content
+                except Exception as e:
+                    response = f"Sir, my neural link is unstable. (Error: {e})"
                 
-        st.session_state.messages.append({"role": "assistant", "content": response})
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
