@@ -1,96 +1,98 @@
 import streamlit as st
 import time
 import requests
-import pyttsx3
-import threading
 from streamlit_lottie import st_lottie
+from groq import Groq
+from tavily import TavilyClient
 
-# --- 1. SETUP & THEME ---
+# --- CONFIGURATION & STYLING ---
 st.set_page_config(page_title="AEGIS OS", page_icon="🌐", layout="wide")
 
-# Custom CSS for the "Jarvis" Glow Aesthetic
+# Custom CSS for the Stark/HUD Aesthetic
 st.markdown("""
     <style>
     .stApp { background-color: #060b14; color: #00f2ff; }
     .stMarkdown, p, h1, h2, h3 { 
         color: #00f2ff !important; 
-        text-shadow: 0 0 5px #00f2ff;
+        text-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
         font-family: 'Courier New', monospace;
     }
-    /* Glassmorphism for chat bubbles */
+    /* Chat Bubble Styling */
     [data-testid="stChatMessage"] {
         background: rgba(0, 242, 255, 0.05);
         border: 1px solid rgba(0, 242, 255, 0.2);
-        border-radius: 15px;
-        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        margin-bottom: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. HELPER FUNCTIONS ---
+# --- INITIALIZE CLIENTS (Add your keys here) ---
+# It's better to use st.secrets["GROQ_API_KEY"] if deploying to Streamlit Cloud
+GROQ_API_KEY = "YOUR_GROQ_KEY_HERE"
+TAVILY_API_KEY = "YOUR_TAVILY_KEY_HERE"
+
+client = Groq(api_key=GROQ_API_KEY)
+tavily = TavilyClient(api_key=TAVILY_API_KEY)
+
+# --- HELPER FUNCTIONS ---
 def load_lottieurl(url: str):
     r = requests.get(url)
     return r.json() if r.status_code == 200 else None
 
-def speak(text):
-    """Runs TTS in a separate thread to prevent Streamlit UI freezing"""
-    def run_speech():
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[0].id) # Usually male/British-sounding
-        engine.setProperty('rate', 170)
-        engine.say(text)
-        engine.runAndWait()
-    threading.Thread(target=run_speech).start()
+def speak_web(text):
+    """Browser-based TTS that works everywhere"""
+    st.components.v1.html(f"""
+        <script>
+        var msg = new SpeechSynthesisUtterance('{text}');
+        msg.rate = 1.0; 
+        msg.pitch = 0.8; // Lower pitch for a more 'AI' feel
+        window.speechSynthesis.speak(msg);
+        </script>
+    """, height=0)
 
-# --- 3. THE BOOT SEQUENCE (INTRO) ---
+# --- BOOT SEQUENCE (Intro Animation) ---
 if 'booted' not in st.session_state:
     intro_placeholder = st.empty()
     
     with intro_placeholder.container():
-        # Load a techy HUD animation (Replace URL with your favorite)
+        # Using a sleek circular tech animation
         lottie_url = "https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json"
         lottie_json = load_lottieurl(lottie_url)
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st_lottie(lottie_json, height=450, key="boot_anim")
+            st_lottie(lottie_json, height=400, key="boot_anim")
             
             status = st.empty()
             bar = st.progress(0)
             
-            boot_logs = [
-                "INITIALIZING AEGIS CORE...",
-                "LOADING NEURAL NETWORKS...",
-                "SYNCING STARK-HUD INTERFACE...",
-                "BYPASSING SECURITY PROTOCOLS...",
-                "AEGIS ONLINE."
-            ]
+            steps = ["INITIALIZING CORE...", "SYNCING HUD...", "AEGIS ONLINE."]
+            for i, step in enumerate(steps):
+                status.markdown(f"**{step}**")
+                bar.progress((i + 1) * 33)
+                time.sleep(0.8)
             
-            for i, log in enumerate(boot_logs):
-                status.markdown(f"`{log}`")
-                bar.progress((i + 1) * 20)
-                time.sleep(0.7)
-            
-            speak("Welcome home, sir. AEGIS is at your service.")
-            time.sleep(1.5)
+            speak_web("Welcome home, sir. All systems are operational.")
+            time.sleep(1)
             
     st.session_state.booted = True
-    intro_placeholder.empty() # Clears the screen for the main app
+    intro_placeholder.empty()
 
-# --- 4. MAIN CHATBOT INTERFACE ---
+# --- MAIN INTERFACE ---
 if st.session_state.get('booted'):
-    st.title("AEGIS v2.0")
-    
-    # Persistent sidebar animation
+    # Sidebar HUD Elements
     with st.sidebar:
-        st.markdown("### Core Status: Active")
-        lottie_sidebar = load_lottieurl("https://lottie.host/9f50e64c-f17b-4b10-9946-815340626372/pM7vA8n48H.json")
-        st_lottie(lottie_sidebar, height=150, key="sidebar_anim")
-        st.divider()
-        st.info("Ask me about system status or current web trends.")
+        st.title("AEGIS v2.0")
+        sidebar_anim = load_lottieurl("https://lottie.host/9f50e64c-f17b-4b10-9946-815340626372/pM7vA8n48H.json")
+        st_lottie(sidebar_anim, height=150)
+        st.write("---")
+        st.write("System Status: **OPTIMAL**")
+        if st.button("Reboot System"):
+            del st.session_state.booted
+            st.rerun()
 
-    # Chat history logic from your existing script
+    # Chat History
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -98,13 +100,28 @@ if st.session_state.get('booted'):
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    if prompt := st.chat_input("Command AEGIS..."):
+    # User Command
+    if prompt := st.chat_input("Input Command..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        # AI Processing
         with st.chat_message("assistant"):
-            # Put your actual AI generation (Groq/Tavily) logic here
-            response = "I am processing your request using the Aegis interface." 
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.spinner("Analyzing Data..."):
+                # 1. Search the web using Tavily
+                search_result = tavily.search(query=prompt, search_depth="basic")
+                context = str(search_result['results'])
+
+                # 2. Generate response using Groq
+                completion = client.chat.completions.create(
+                    model="llama3-8b-8192",
+                    messages=[
+                        {"role": "system", "content": f"You are AEGIS, a sophisticated AI. Use this context: {context}"},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                response = completion.choices[0].message.content
+                st.markdown(response)
+                
+        st.session_state.messages.append({"role": "assistant", "content": response})
