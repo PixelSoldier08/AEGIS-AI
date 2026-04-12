@@ -1,4 +1,5 @@
 streamlit
 streamlit-lottie
 requests
-pyttsx3
+groq
+tavily-python
