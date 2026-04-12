@@ -1,124 +1,110 @@
 import streamlit as st
+import time
 import requests
-import base64
-from groq import Groq
+import pyttsx3
+import threading
+from streamlit_lottie import st_lottie
 
-# --- 1. CORE SYSTEM ---
-st.set_page_config(page_title="AEGIS MARK I", layout="wide")
+# --- 1. SETUP & THEME ---
+st.set_page_config(page_title="AEGIS OS", page_icon="🌐", layout="wide")
 
-USER_NAME = "Ikki"
-LOCATION = "Tiruchirappalli"
+# Custom CSS for the "Jarvis" Glow Aesthetic
+st.markdown("""
+    <style>
+    .stApp { background-color: #060b14; color: #00f2ff; }
+    .stMarkdown, p, h1, h2, h3 { 
+        color: #00f2ff !important; 
+        text-shadow: 0 0 5px #00f2ff;
+        font-family: 'Courier New', monospace;
+    }
+    /* Glassmorphism for chat bubbles */
+    [data-testid="stChatMessage"] {
+        background: rgba(0, 242, 255, 0.05);
+        border: 1px solid rgba(0, 242, 255, 0.2);
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Initialize Chat Memory
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# --- 2. HELPER FUNCTIONS ---
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    return r.json() if r.status_code == 200 else None
 
-# --- 2. THE INTERFACE (NO CRASH VERSION) ---
-css_code = """
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+def speak(text):
+    """Runs TTS in a separate thread to prevent Streamlit UI freezing"""
+    def run_speech():
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        engine.setProperty('voice', voices[0].id) # Usually male/British-sounding
+        engine.setProperty('rate', 170)
+        engine.say(text)
+        engine.runAndWait()
+    threading.Thread(target=run_speech).start()
+
+# --- 3. THE BOOT SEQUENCE (INTRO) ---
+if 'booted' not in st.session_state:
+    intro_placeholder = st.empty()
     
-    [data-testid="stAppViewContainer"] {
-        background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%) !important;
-    }
-
-    .stApp {
-        color: #00d4ff !important;
-        font-family: 'Orbitron', sans-serif !important;
-    }
-
-    /* Fixed Input Box at Bottom */
-    div[data-testid="stChatInput"] {
-        position: fixed !important;
-        bottom: 20px !important;
-        z-index: 1000;
-        background: transparent !important;
-    }
-
-    /* Top Left HUD */
-    .aegis-hud {
-        position: fixed; top: 10px; left: 20px; z-index: 1001;
-        border-left: 3px solid #ff0000; /* Red Tactical Accent */
-        padding-left: 15px;
-    }
-</style>
-"""
-st.markdown(css_code, unsafe_allow_html=True)
-
-# UI Widgets
-st.markdown(f'''
-    <div class="aegis-hud">
-        <h2 style="margin:0; font-size: 1.1rem; color:#ff0000; letter-spacing:2px;">AEGIS // MK I</h2>
-        <p style="margin:0; font-size: 0.7rem; color:#00d4ff;">OPERATOR: {USER_NAME.upper()}</p>
-        <p style="margin:0; font-size: 0.6rem; opacity:0.6; color:#00d4ff;">LOC: {LOCATION.upper()}</p>
-    </div>
-''', unsafe_allow_html=True)
-
-# --- 3. THE BLOOD SPIDER (Red & Transparent) ---
-@st.cache_data
-def get_aegis_model():
-    url = "https://raw.githubusercontent.com/PixelSoldier08/AEGIS-AI/main/download.glb"
-    try:
-        res = requests.get(url, timeout=10)
-        return f"data:application/octet-stream;base64,{base64.b64encode(res.content).decode()}"
-    except: return None
-
-model_uri = get_aegis_model()
-if model_uri:
-    st.markdown(f'''
-    <div style="position: fixed; bottom: 80px; right: 20px; z-index: 999;">
-        <iframe srcdoc='
-            <html>
-            <head>
-                <style>
-                    html, body {{ background: transparent !important; margin: 0; overflow: hidden; }}
-                    model-viewer {{
-                        width: 300px; height: 300px; 
-                        background-color: transparent !important;
-                        filter: brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(12) contrast(1.2);
-                        --background-color: transparent !important;
-                    }}
-                </style>
-            </head>
-            <body>
-                <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-                <model-viewer src="{model_uri}" auto-rotate camera-controls disable-zoom
-                    shadow-intensity="2" environment-intensity="0.2" exposure="0.8">
-                </model-viewer>
-            </body>
-            </html>
-        ' style="width:300px; height:300px; border:none; background:transparent;" allowtransparency="true"></iframe>
-    </div>
-    ''', unsafe_allow_html=True)
-
-# --- 4. THE BRAIN (Groq + Identity) ---
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
-
-if prompt := st.chat_input("Command AEGIS..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant"):
-        try:
-            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+    with intro_placeholder.container():
+        # Load a techy HUD animation (Replace URL with your favorite)
+        lottie_url = "https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json"
+        lottie_json = load_lottieurl(lottie_url)
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st_lottie(lottie_json, height=450, key="boot_anim")
             
-            # HARDCODING BRAIN CONTENT HERE
-            system_msg = {
-                "role": "system", 
-                "content": f"You are AEGIS, a high-security tactical AI. Your operator is {USER_NAME}. "
-                           f"You are currently deployed in {LOCATION}. Respond with tactical brevity."
-            }
+            status = st.empty()
+            bar = st.progress(0)
             
-            response = client.chat.completions.create(
-                messages=[system_msg, *st.session_state.messages],
-                model="llama-3.3-70b-versatile"
-            )
-            ans = response.choices[0].message.content
-            st.markdown(ans)
-            st.session_state.messages.append({"role": "assistant", "content": ans})
-        except Exception as e:
-            st.error(f"NEURAL ERROR: {e}")
-    st.rerun()
+            boot_logs = [
+                "INITIALIZING AEGIS CORE...",
+                "LOADING NEURAL NETWORKS...",
+                "SYNCING STARK-HUD INTERFACE...",
+                "BYPASSING SECURITY PROTOCOLS...",
+                "AEGIS ONLINE."
+            ]
+            
+            for i, log in enumerate(boot_logs):
+                status.markdown(f"`{log}`")
+                bar.progress((i + 1) * 20)
+                time.sleep(0.7)
+            
+            speak("Welcome home, sir. AEGIS is at your service.")
+            time.sleep(1.5)
+            
+    st.session_state.booted = True
+    intro_placeholder.empty() # Clears the screen for the main app
+
+# --- 4. MAIN CHATBOT INTERFACE ---
+if st.session_state.get('booted'):
+    st.title("AEGIS v2.0")
+    
+    # Persistent sidebar animation
+    with st.sidebar:
+        st.markdown("### Core Status: Active")
+        lottie_sidebar = load_lottieurl("https://lottie.host/9f50e64c-f17b-4b10-9946-815340626372/pM7vA8n48H.json")
+        st_lottie(lottie_sidebar, height=150, key="sidebar_anim")
+        st.divider()
+        st.info("Ask me about system status or current web trends.")
+
+    # Chat history logic from your existing script
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("Command AEGIS..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            # Put your actual AI generation (Groq/Tavily) logic here
+            response = "I am processing your request using the Aegis interface." 
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
