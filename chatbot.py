@@ -21,10 +21,6 @@ st.markdown("""
         border: 1px solid rgba(0, 242, 255, 0.2);
         border-radius: 10px;
     }
-    /* Fixing the Chat Input position */
-    .stChatInputContainer {
-        padding-bottom: 20px;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -35,7 +31,7 @@ def get_clients():
         t = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
         return g, t
     except Exception as e:
-        st.error(f"Boss, API keys are missing in Secrets! {e}")
+        st.error("Boss, API keys are missing! Add GROQ_API_KEY and TAVILY_API_KEY to Streamlit Secrets.")
         return None, None
 
 client, tavily = get_clients()
@@ -63,41 +59,43 @@ def speak(text):
 if 'booted' not in st.session_state:
     intro = st.empty()
     with intro.container():
+        # High-tech HUD animation
         res = requests.get("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
         lottie_json = res.json() if res.status_code == 200 else None
+        
         c1, c2, c3 = st.columns([1, 2, 1])
-        with col2 := c2:
-            if lottie_json: st_lottie(lottie_json, height=400)
+        with c2:
+            if lottie_json:
+                st_lottie(lottie_json, height=400, key="boot_lottie")
             bar = st.progress(0)
-            for i, s in enumerate(["LOADING FRIDAY...", "SYNCING BRAIN...", "ONLINE."]):
-                st.markdown(f"`{s}`")
+            msg_status = st.empty()
+            steps = ["UPLOADING FRIDAY OS...", "CALIBRATING NEURAL LINKS...", "FRIDAY ONLINE."]
+            for i, s in enumerate(steps):
+                msg_status.markdown(f"`{s}`")
                 bar.progress((i + 1) * 33)
                 time.sleep(0.7)
             speak("Welcome back, Boss. All systems green.")
     st.session_state.booted = True
     intro.empty()
 
-# --- 5. THE CHAT SECTION (THE MISSING PIECE) ---
+# --- 5. THE CHAT SECTION ---
 if st.session_state.get('booted'):
     st.title("AEGIS: FRIDAY PROTOCOL")
 
-    # Initialize message history
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display chat messages from history on app rerun
+    # Display history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # React to user input
+    # Input section
     if prompt := st.chat_input("Command FRIDAY..."):
-        # Display user message
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generate Assistant response
         with st.chat_message("assistant"):
             with st.spinner("Analyzing..."):
                 # A. Search
@@ -105,20 +103,21 @@ if st.session_state.get('booted'):
                 try:
                     search = tavily.search(query=prompt)
                     context = str(search['results'])
-                except: context = "No live data."
+                except:
+                    context = "No live data."
 
-                # B. Reasoning (Llama 3.1)
+                # B. Brain (Using Llama 3.1)
                 try:
                     chat_completion = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
                         messages=[
-                            {"role": "system", "content": f"You are FRIDAY. Be sharp, efficient, and call the user Boss. Context: {context}"},
+                            {"role": "system", "content": f"You are FRIDAY. Be sharp and efficient. Call the user Boss. Context: {context}"},
                             {"role": "user", "content": prompt}
                         ]
                     )
                     response = chat_completion.choices[0].message.content
                 except Exception as e:
-                    response = f"Boss, neural links are unstable. Error: {e}"
+                    response = f"Boss, my neural links are unstable. Error: {e}"
                 
                 st.markdown(response)
                 speak(response)
