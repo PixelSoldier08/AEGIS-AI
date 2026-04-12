@@ -6,11 +6,11 @@ from groq import Groq
 from tavily import TavilyClient
 
 # --- 1. HUD & INTERFACE CONFIG ---
-st.set_page_config(page_title="AEGIS: FRIDAY PROTOCOL", layout="wide")
+st.set_page_config(page_title="AEGIS: AI PROTOCOL", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #060b14; color: #ff3399; } /* Subtle pink/magenta accent for FRIDAY */
+    .stApp { background-color: #060b14; color: #ff3399; } 
     .stMarkdown, p, h1, h2, h3 { 
         color: #00f2ff !important; 
         text-shadow: 0 0 10px rgba(0, 242, 255, 0.7);
@@ -27,32 +27,45 @@ st.markdown("""
 # --- 2. BRAIN INITIALIZATION ---
 def get_globals():
     try:
-        # Pulling keys from Streamlit Secrets
         g_client = Groq(api_key=st.secrets["GROQ_API_KEY"])
         t_client = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
         return g_client, t_client
     except Exception as e:
-        st.error(f"Configuration Error: {e}")
+        st.error(f"Boss, check the Secret Keys: {e}")
         return None, None
 
 client, tavily = get_globals()
 
-# --- 3. FRIDAY VOICE UTILITY ---
+# --- 3. THE FRIDAY VOICE FIX ---
 def speak(text):
-    """Web-based female voice (FRIDAY)"""
+    """Forcing the browser to find and use a female voice"""
     clean = text.replace("'", "").replace("\n", " ").replace('"', '')
     st.components.v1.html(f"""
         <script>
         window.speechSynthesis.cancel();
         var msg = new SpeechSynthesisUtterance('{clean}');
-        var voices = window.speechSynthesis.getVoices();
         
-        // Try to find a female-sounding voice
-        msg.voice = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Hazel'));
-        
-        msg.rate = 1.1; // FRIDAY talks a bit faster/sharper
-        msg.pitch = 1.2; // Slightly higher pitch for female tone
-        window.speechSynthesis.speak(msg);
+        function setFemaleVoice() {{
+            var voices = window.speechSynthesis.getVoices();
+            // Look for common female voice names
+            var target = voices.find(v => 
+                v.name.includes('Female') || 
+                v.name.includes('Google UK English Female') || 
+                v.name.includes('Hazel') || 
+                v.name.includes('Zira') ||
+                v.name.includes('Microsoft Maria')
+            );
+            if (target) msg.voice = target;
+            msg.rate = 1.05; 
+            msg.pitch = 1.2; 
+            window.speechSynthesis.speak(msg);
+        }}
+
+        if (window.speechSynthesis.getVoices().length !== 0) {{
+            setFemaleVoice();
+        }} else {{
+            window.speechSynthesis.onvoiceschanged = setFemaleVoice;
+        }}
         </script>
     """, height=0)
 
@@ -67,23 +80,22 @@ def load_lottie(url):
 if 'booted' not in st.session_state:
     intro = st.empty()
     with intro.container():
-        # High-tech HUD animation
         lottie_json = load_lottie("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
             if lottie_json: st_lottie(lottie_json, height=400, key="boot")
             bar = st.progress(0)
             msg = st.empty()
-            steps = ["UPLOADING FRIDAY OS...", "CALIBRATING NEURAL LINKS...", "FRIDAY ONLINE."]
+            steps = ["LOADING FRIDAY OS...", "CALIBRATING VOX...", "ONLINE."]
             for i, s in enumerate(steps):
                 msg.markdown(f"`{s}`")
                 bar.progress((i + 1) * 33)
-                time.sleep(0.8)
-            speak("Boss? You're up? All systems operational.")
+                time.sleep(0.7)
+            speak("Boss? All systems operational. How can I help?")
     st.session_state.booted = True
     intro.empty()
 
-# --- 6. CHAT INTERFACE & REASONING ---
+# --- 6. MAIN CHAT & REASONING ---
 if st.session_state.get('booted') and client:
     st.title("AEGIS: FRIDAY PROTOCOL")
     
@@ -91,35 +103,4 @@ if st.session_state.get('booted') and client:
         st.session_state.messages = []
 
     for m in st.session_state.messages:
-        with st.chat_message(m["role"]): st.markdown(m["content"])
-
-    if prompt := st.chat_input("Command FRIDAY..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            with st.spinner("Scanning Data..."):
-                # A. Web Search (Tavily)
-                context = ""
-                try:
-                    search = tavily.search(query=prompt)
-                    context = str(search['results'])
-                except: context = "No live satellite data."
-
-                # B. Brain (Llama 3.1)
-                try:
-                    chat_completion = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=[
-                            {"role": "system", "content": f"You are FRIDAY, the female AI from Iron Man. Be efficient and call the user Boss. Use this data: {context}"},
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    response = chat_completion.choices[0].message.content
-                except:
-                    response = "Neural link dropped, Boss. Check your API connections."
-                
-                st.markdown(response)
-                speak(response) # Friday speaks the response
-                
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message(m["role"]): st
