@@ -47,7 +47,7 @@ def speak(text):
             var voices = window.speechSynthesis.getVoices();
             var female = voices.find(v => v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Zira') || v.name.includes('Google UK English Female'));
             if (female) msg.voice = female;
-            msg.rate = 1.1; msg.pitch = 1.2;
+            msg.rate = 1.1; msg.pitch = 1.3;
             window.speechSynthesis.speak(msg);
         }}
         if (window.speechSynthesis.getVoices().length !== 0) {{ setVoice(); }}
