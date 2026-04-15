@@ -4,7 +4,7 @@ import requests
 from streamlit_lottie import st_lottie
 from groq import Groq
 import openai
-import tools 
+import tools # Using your local tools.py
 
 # --- 1. HUD & STYLING ---
 st.set_page_config(page_title="AEGIS: FRIDAY PROTOCOL", layout="wide")
@@ -24,28 +24,26 @@ st.markdown("""
 def get_clients():
     try:
         g = Groq(api_key=st.secrets["GROQ_API_KEY"])
-        o = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) if "OPENAI_API_KEY" in st.secrets else None
+        # Only start OpenAI if the key exists
+        o = None
+        if "OPENAI_API_KEY" in st.secrets:
+            o = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         return g, o
-    except: return None, None
+    except Exception as e:
+        st.error(f"Boss, API keys are missing! {e}")
+        return None, None
 
 client, openai_client = get_clients()
 
-# --- 3. SMART VOICE PROTOCOL (Clears Queue & Tab Detection) ---
+# --- 3. VOICE PROTOCOL (Stop on Tab Switch) ---
 def speak(text):
     clean = text.replace("'", "").replace('"', "").replace("\n", " ").replace("*", "")
     st.components.v1.html(f"""
         <script>
-        // 1. Immediate cancel of previous speech
         window.speechSynthesis.cancel(); 
-
-        // 2. Tab Visibility Detection: Stop speaking if user leaves tab
         document.addEventListener("visibilitychange", function() {{
-            if (document.hidden) {{
-                window.speechSynthesis.cancel();
-            }}
+            if (document.hidden) {{ window.speechSynthesis.cancel(); }}
         }});
-
-        // 3. Optimized Speech trigger
         setTimeout(() => {{
             var msg = new SpeechSynthesisUtterance('{clean}');
             var voices = window.speechSynthesis.getVoices();
@@ -69,13 +67,11 @@ if 'booted' not in st.session_state:
             if lottie_json: st_lottie(lottie_json, height=350, key="boot_anim")
             progress_bar = st.progress(0)
             status_text = st.empty()
-            
             for step, val in [("INITIALIZING...", 33), ("SYNCING...", 66), ("ONLINE.", 100)]:
                 status_text.markdown(f"**`{step}`**")
                 progress_bar.progress(val)
                 time.sleep(0.6)
-            
-            speak("All systems online, Boss.")
+            speak("Welcome back, Boss.")
     st.session_state.booted = True
     boot_placeholder.empty()
 
@@ -92,31 +88,40 @@ if st.session_state.get('booted'):
             else: st.image(m["content"])
 
     if prompt := st.chat_input("Command FRIDAY..."):
-        # Reset vocal queue on new input
+        # Stop previous audio immediately
         st.components.v1.html("<script>window.speechSynthesis.cancel();</script>", height=0)
         
         st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
         with st.chat_message("user"): st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            if any(k in prompt.lower() for k in ["draw", "visualize", "image"]):
+            # --- CHOICE 1: IMAGE GENERATION ---
+            if any(k in prompt.lower() for k in ["draw", "visualize", "image", "show me a picture"]):
                 if openai_client:
-                    with st.spinner("Visualizing..."):
+                    with st.spinner("Accessing visual sub-routines..."):
                         try:
-                            res = openai_client.images.generate(model="dall-e-3", prompt=prompt)
+                            res = openai_client.images.generate(
+                                model="dall-e-3",
+                                prompt=f"Marvel cinematic style: {prompt}",
+                                n=1
+                            )
                             url = res.data[0].url
                             st.image(url)
                             st.session_state.messages.append({"role": "assistant", "type": "image", "content": url})
-                            speak("Visualization ready, Boss.")
-                        except: st.error("Image generation failed.")
-                else: st.warning("Visualizer offline.")
+                            speak("The visualization is ready for your review, Boss.")
+                        except Exception as e:
+                            st.error(f"Visualizer error: {e}")
+                else:
+                    st.warning("Boss, I need an OpenAI API key in Secrets to generate images.")
+
+            # --- CHOICE 2: CONVERSATION ---
             else:
-                with st.spinner("Thinking..."):
+                with st.spinner("Processing..."):
                     context = tools.web_search(prompt)
                     ans = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
                         messages=[
-                            {"role": "system", "content": "You are FRIDAY. Be efficient and call the user Boss."},
+                            {"role": "system", "content": "You are FRIDAY. Be witty, loyal, and call the user Boss."},
                             {"role": "user", "content": f"Context: {context}\\n\\n{prompt}"}
                         ]
                     ).choices[0].message.content
