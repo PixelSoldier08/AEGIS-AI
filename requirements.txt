@@ -3,3 +3,4 @@ streamlit-lottie
 requests
 groq
 tavily-python
+openai
