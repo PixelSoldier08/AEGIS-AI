@@ -4,21 +4,11 @@ import requests
 from streamlit_lottie import st_lottie
 from groq import Groq
 import openai
-import tools # This uses your local tools.py
+import tools # This calls your tools.py
 
 # --- 1. HUD & STYLING ---
 st.set_page_config(page_title="AEGIS: FRIDAY PROTOCOL", layout="wide")
-
-st.markdown("""
-    <style>
-    .stApp { background-color: #060b14; color: #ff3399; }
-    .stMarkdown, p, h1, h2, h3 { 
-        color: #00f2ff !important; 
-        text-shadow: 0 0 10px rgba(0, 242, 255, 0.7);
-        font-family: 'Courier New', monospace;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.markdown("<style>.stApp { background-color: #060b14; color: #ff3399; }</style>", unsafe_allow_html=True)
 
 # --- 2. INITIALIZE CLIENTS ---
 def get_clients():
@@ -30,7 +20,7 @@ def get_clients():
 
 client, openai_client = get_clients()
 
-# --- 3. VOICE PROTOCOL (Stop on Tab Switch & No Static) ---
+# --- 3. VOICE PROTOCOL (Clean & Responsive) ---
 def speak(text):
     clean = text.replace("'", "").replace('"', "").replace("\n", " ").replace("*", "")
     st.components.v1.html(f"""
@@ -50,32 +40,26 @@ def speak(text):
         </script>
     """, height=0)
 
-# --- 4. THE BOOT SEQUENCE ---
+# --- 4. BOOT SEQUENCE ---
 if 'booted' not in st.session_state:
     boot_placeholder = st.empty()
     with boot_placeholder.container():
         res = requests.get("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
         lottie_json = res.json() if res.status_code == 200 else None
-        
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
-            if lottie_json: st_lottie(lottie_json, height=350, key="boot_anim")
+            if lottie_json: st_lottie(lottie_json, height=350, key="boot")
             bar = st.progress(0)
-            status = st.empty()
             for s, v in [("UPLOADING FRIDAY...", 33), ("CALIBRATING...", 66), ("ONLINE.", 100)]:
-                status.markdown(f"**`{s}`**")
-                bar.progress(v)
-                time.sleep(0.7)
-            speak("Welcome back, Boss. All systems green.")
+                st.markdown(f"**`{s}`**"); bar.progress(v); time.sleep(0.7)
+            speak("Welcome back, Boss.")
     st.session_state.booted = True
     boot_placeholder.empty()
 
 # --- 5. CHAT ENGINE ---
 if st.session_state.get('booted'):
     st.title("AEGIS: FRIDAY PROTOCOL")
-    
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    if "messages" not in st.session_state: st.session_state.messages = []
 
     for m in st.session_state.messages:
         with st.chat_message(m["role"]):
@@ -83,28 +67,22 @@ if st.session_state.get('booted'):
             else: st.image(m["content"])
 
     if prompt := st.chat_input("Command FRIDAY..."):
-        # Kill previous speech immediately
         st.components.v1.html("<script>window.speechSynthesis.cancel();</script>", height=0)
-        
         st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
         with st.chat_message("user"): st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            # DRAWING LOGIC
-            if any(k in prompt.lower() for k in ["draw", "visualize", "image", "picture"]):
+            if any(k in prompt.lower() for k in ["draw", "visualize", "image"]):
                 if openai_client:
-                    with st.spinner("Accessing visual sub-routines..."):
+                    with st.spinner("Visualizing..."):
                         try:
                             res = openai_client.images.generate(model="dall-e-3", prompt=prompt)
                             url = res.data[0].url
                             st.image(url)
                             st.session_state.messages.append({"role": "assistant", "type": "image", "content": url})
-                            speak("Visualization complete, Boss.")
-                        except: st.error("Graphic link failed.")
-                else:
-                    st.warning("Visualizer offline (Key missing).")
-
-            # TEXT LOGIC
+                            speak("Task complete, Boss.")
+                        except: st.error("Visualizer failed.")
+                else: st.warning("Visualizer offline.")
             else:
                 with st.spinner("Processing..."):
                     context = tools.web_search(prompt)
@@ -115,7 +93,5 @@ if st.session_state.get('booted'):
                             {"role": "user", "content": f"Context: {context}\\n\\n{prompt}"}
                         ]
                     ).choices[0].message.content
-                    
-                    st.markdown(ans)
-                    speak(ans)
+                    st.markdown(ans); speak(ans)
                     st.session_state.messages.append({"role": "assistant", "type": "text", "content": ans})
