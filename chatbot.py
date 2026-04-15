@@ -4,10 +4,11 @@ import requests
 from streamlit_lottie import st_lottie
 from groq import Groq
 import openai
-import tools  # Ensure tools.py is in your GitHub!
+import tools 
 
-# --- 1. HUD & STYLE ---
+# --- 1. HUD & STYLING ---
 st.set_page_config(page_title="AEGIS: FRIDAY PROTOCOL", layout="wide")
+
 st.markdown("""
     <style>
     .stApp { background-color: #060b14; color: #ff3399; }
@@ -19,45 +20,73 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. CLIENTS ---
+# --- 2. INITIALIZE CLIENTS ---
 def get_clients():
     try:
         g = Groq(api_key=st.secrets["GROQ_API_KEY"])
         o = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) if "OPENAI_API_KEY" in st.secrets else None
         return g, o
-    except Exception as e:
-        st.error(f"Keys missing: {e}")
+    except:
         return None, None
 
 client, openai_client = get_clients()
 
-# --- 3. FRIDAY VOICE (FORCED FEMALE) ---
+# --- 3. CLEAN VOICE PROTOCOL (No Noise Fix) ---
 def speak(text):
-    clean = text.replace("'", "").replace("\n", " ").replace('"', '')
+    # Removing special characters that cause "static" or glitches in JS
+    clean = text.replace("'", "").replace('"', "").replace("\n", " ").replace("*", "")
     st.components.v1.html(f"""
         <script>
-        window.speechSynthesis.cancel();
-        var msg = new SpeechSynthesisUtterance('{clean}');
-        function setVoice() {{
+        window.speechSynthesis.cancel(); // Clears queue to prevent overlapping noise
+        setTimeout(() => {{
+            var msg = new SpeechSynthesisUtterance('{clean}');
             var voices = window.speechSynthesis.getVoices();
-            // Specifically hunting for female tones
-            var female = voices.find(v => v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Zira') || v.name.includes('Google UK English Female') || v.name.includes('Microsoft Maria'));
+            var female = voices.find(v => v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Google UK English Female'));
             if (female) msg.voice = female;
-            msg.rate = 1.05; msg.pitch = 1.2;
+            msg.rate = 1.0; msg.pitch = 1.2;
             window.speechSynthesis.speak(msg);
-        }}
-        if (window.speechSynthesis.getVoices().length !== 0) {{ setVoice(); }}
-        else {{ window.speechSynthesis.onvoiceschanged = setVoice; }}
+        }}, 100);
         </script>
     """, height=0)
 
-# --- 4. BOOT SEQUENCE ---
+# --- 4. THE BOOT SEQUENCE (Fixed Visibility) ---
 if 'booted' not in st.session_state:
+    # Use a placeholder to ensure it shows up before anything else
+    boot_placeholder = st.empty()
+    with boot_placeholder.container():
+        res = requests.get("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
+        lottie_json = res.json() if res.status_code == 200 else None
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if lottie_json:
+                st_lottie(lottie_json, height=350, key="boot_anim")
+            
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            load_steps = [
+                ("INITIALIZING HUD...", 25),
+                ("SYNCING NEURAL NET...", 50),
+                ("DECRYPTING SATELLITE DATA...", 75),
+                ("FRIDAY ONLINE.", 100)
+            ]
+            
+            for step, val in load_steps:
+                status_text.markdown(f"**`{step}`**")
+                progress_bar.progress(val)
+                time.sleep(0.8)
+            
+            speak("Systems fully operational, Boss. I'm ready when you are.")
+            time.sleep(1) 
+    
     st.session_state.booted = True
-    speak("Systems recalibrated. I'm back, Boss. Sorry for the glitch.")
+    boot_placeholder.empty() # Clears the boot screen to show the chat
 
-# --- 5. CHAT ENGINE ---
+# --- 5. MAIN CHAT INTERFACE ---
 if st.session_state.get('booted'):
+    st.title("AEGIS: FRIDAY PROTOCOL")
+    
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -67,36 +96,33 @@ if st.session_state.get('booted'):
             if m["type"] == "text": st.markdown(m["content"])
             else: st.image(m["content"])
 
-    if prompt := st.chat_input("Command FRIDAY..."):
+    if prompt := st.chat_input("What's the plan, Boss?"):
         st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
         with st.chat_message("user"): st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            # A. DRAWING LOGIC
+            # DRAWING LOGIC
             if any(k in prompt.lower() for k in ["draw", "visualize", "show me"]):
                 if openai_client:
-                    with st.spinner("Rendering..."):
+                    with st.spinner("Rendering Visuals..."):
                         try:
                             res = openai_client.images.generate(model="dall-e-3", prompt=prompt)
                             url = res.data[0].url
                             st.image(url)
                             st.session_state.messages.append({"role": "assistant", "type": "image", "content": url})
-                            speak("Visualization uploaded to your HUD, Boss.")
-                        except: st.error("Visualizer failure.")
+                            speak("Check your display, Boss.")
+                        except: st.error("Graphic drivers failed.")
                 else: st.warning("Visualizer offline.")
 
-            # B. CONVERSATION LOGIC (FRIDAY'S PERSONALITY)
+            # TEXT LOGIC
             else:
-                with st.spinner("Thinking..."):
+                with st.spinner("Processing..."):
                     context = tools.web_search(prompt)
-                    
-                    # SYSTEM PROMPT - This is where she remembers she's FRIDAY
-                    # Put your name in the system content below if you want her to never forget it!
                     ans = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
                         messages=[
-                            {"role": "system", "content": "You are FRIDAY, Tony Stark's advanced AI. You are witty, efficient, and loyal. Always call the user 'Boss'. Never act like a generic robot."},
-                            {"role": "user", "content": f"Context: {context}\nUser says: {prompt}"}
+                            {"role": "system", "content": "You are FRIDAY. You are efficient, loyal, and witty. Always call the user 'Boss'."},
+                            {"role": "user", "content": f"Context: {context}\n\n{prompt}"}
                         ]
                     ).choices[0].message.content
                     
