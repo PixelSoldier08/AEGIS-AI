@@ -4,6 +4,8 @@ import requests
 from streamlit_lottie import st_lottie
 from groq import Groq
 from tavily import TavilyClient
+import openai # Added this back
+import tools  # Importing your local tools.py
 
 # --- 1. HUD & STYLING ---
 st.set_page_config(page_title="AEGIS: FRIDAY PROTOCOL", layout="wide")
@@ -29,12 +31,15 @@ def get_clients():
     try:
         g = Groq(api_key=st.secrets["GROQ_API_KEY"])
         t = TavilyClient(api_key=st.secrets["TAVILY_API_KEY"])
-        return g, t
+        o = None
+        if "OPENAI_API_KEY" in st.secrets:
+            o = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        return g, t, o
     except Exception as e:
-        st.error("Boss, API keys are missing! Add GROQ_API_KEY and TAVILY_API_KEY to Streamlit Secrets.")
-        return None, None
+        st.error(f"Boss, API keys are missing! {e}")
+        return None, None, None
 
-client, tavily = get_clients()
+client, tavily, openai_client = get_clients()
 
 # --- 3. THE VOICE PROTOCOL ---
 def speak(text):
@@ -55,71 +60,72 @@ def speak(text):
         </script>
     """, height=0)
 
-# --- 4. BOOT SEQUENCE ---
+# --- 4. IMAGE GENERATION ---
+def draw_image(prompt):
+    if not openai_client:
+        return "ERROR: Visualizer key not found."
+    try:
+        response = openai_client.images.generate(
+            model="dall-e-3",
+            prompt=f"Cinematic Marvel style: {prompt}",
+            n=1, size="1024x1024"
+        )
+        return response.data[0].url
+    except Exception as e:
+        return f"ERROR: {e}"
+
+# --- 5. BOOT SEQUENCE ---
 if 'booted' not in st.session_state:
     intro = st.empty()
     with intro.container():
-        # High-tech HUD animation
         res = requests.get("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
         lottie_json = res.json() if res.status_code == 200 else None
-        
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
-            if lottie_json:
-                st_lottie(lottie_json, height=400, key="boot_lottie")
+            if lottie_json: st_lottie(lottie_json, height=400, key="boot")
             bar = st.progress(0)
-            msg_status = st.empty()
-            steps = ["UPLOADING FRIDAY OS...", "CALIBRATING NEURAL LINKS...", "FRIDAY ONLINE."]
-            for i, s in enumerate(steps):
-                msg_status.markdown(f"`{s}`")
+            for i, s in enumerate(["LOADING FRIDAY...", "SYNCING BRAIN...", "READY."]):
+                st.markdown(f"`{s}`")
                 bar.progress((i + 1) * 33)
-                time.sleep(0.7)
-            speak("Welcome back, Boss. All systems green.")
+                time.sleep(0.6)
+            speak("Welcome back, Boss.")
     st.session_state.booted = True
     intro.empty()
 
-# --- 5. THE CHAT SECTION ---
+# --- 6. CHAT SECTION ---
 if st.session_state.get('booted'):
     st.title("AEGIS: FRIDAY PROTOCOL")
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display history
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    for m in st.session_state.messages:
+        with st.chat_message(m["role"]):
+            if m["type"] == "text": st.markdown(m["content"])
+            else: st.image(m["content"])
 
-    # Input section
     if prompt := st.chat_input("Command FRIDAY..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
+        with st.chat_message("user"): st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing..."):
-                # A. Search
-                context = ""
-                try:
-                    search = tavily.search(query=prompt)
-                    context = str(search['results'])
-                except:
-                    context = "No live data."
-
-                # B. Brain (Using Llama 3.1)
-                try:
-                    chat_completion = client.chat.completions.create(
+            # Check if user wants to draw
+            if any(k in prompt.lower() for k in ["draw", "visualize", "show me"]):
+                with st.spinner("Visualizing..."):
+                    img_result = draw_image(prompt)
+                    if "ERROR" in img_result:
+                        st.markdown("Visualizer offline, Boss. (Check OpenAI Key)")
+                    else:
+                        st.image(img_result)
+                        st.session_state.messages.append({"role": "assistant", "type": "image", "content": img_result})
+                        speak("Here is the visualization.")
+            else:
+                # Normal Chat
+                with st.spinner("Analyzing..."):
+                    search_context = tools.web_search(prompt) # Using your tools.py
+                    ans = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
-                        messages=[
-                            {"role": "system", "content": f"You are FRIDAY. Be sharp and efficient. Call the user Boss. Context: {context}"},
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    response = chat_completion.choices[0].message.content
-                except Exception as e:
-                    response = f"Boss, my neural links are unstable. Error: {e}"
-                
-                st.markdown(response)
-                speak(response)
-                
-        st.session_state.messages.append({"role": "assistant", "content": response})
+                        messages=[{"role": "system", "content": f"You are FRIDAY. Use this: {search_context}"}, {"role": "user", "content": prompt}]
+                    ).choices[0].message.content
+                    st.markdown(ans)
+                    speak(ans)
+                    st.session_state.messages.append({"role": "assistant", "type": "text", "content": ans})
