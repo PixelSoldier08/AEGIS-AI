@@ -34,19 +34,16 @@ def get_clients():
 
 client, openai_client = get_clients()
 
-# --- VOICE ---
+# --- VOICE PROTOCOL ---
 def speak(text):
     clean = text.replace("'", "").replace('"', "").replace("\n", " ").replace("*", "")
     st.components.v1.html(f"""
         <script>
         window.speechSynthesis.cancel(); 
-        document.addEventListener("visibilitychange", function() {{
-            if (document.hidden) {{ window.speechSynthesis.cancel(); }}
-        }});
         setTimeout(() => {{
             var msg = new SpeechSynthesisUtterance('{clean}');
             var voices = window.speechSynthesis.getVoices();
-            var female = voices.find(v => v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Google UK English Female'));
+            var female = voices.find(v => v.name.includes('Female') || v.name.includes('Hazel'));
             if (female) msg.voice = female;
             msg.rate = 1.05; msg.pitch = 1.2;
             window.speechSynthesis.speak(msg);
@@ -54,69 +51,57 @@ def speak(text):
         </script>
     """, height=0)
 
-# --- BOOT ---
-if 'booted' not in st.session_state:
-    boot_placeholder = st.empty()
-    with boot_placeholder.container():
+# --- INITIALIZE STATE ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "booted" not in st.session_state:
+    st.session_state.booted = False
+
+# --- BOOT SEQUENCE ---
+if not st.session_state.booted:
+    with st.empty():
         res = requests.get("https://lottie.host/809c7333-e7f3-4d6d-9653-6a9b441f7e02/B79P5J1w8G.json")
         lottie_json = res.json() if res.status_code == 200 else None
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
-            if lottie_json: st_lottie(lottie_json, height=350, key="boot")
+            if lottie_json: st_lottie(lottie_json, height=300)
             bar = st.progress(0)
-            for s, v in [("LOADING CORES...", 33), ("SYNCING SATELLITES...", 66), ("FRIDAY ONLINE.", 100)]:
-                st.markdown(f"**`{s}`**"); bar.progress(v); time.sleep(0.5)
-            speak("Welcome back, Boss.")
+            for s, v in [("LOADING AEGIS 2.0...", 40), ("SYNCING CORES...", 80), ("FRIDAY ONLINE.", 100)]:
+                st.write(f"`{s}`"); bar.progress(v); time.sleep(0.4)
+            speak("Welcome back, Boss. All systems green.")
     st.session_state.booted = True
-    boot_placeholder.empty()
 
 # --- MAIN INTERFACE ---
-if st.session_state.get('booted'):
-    st.title("AEGIS: FRIDAY PROTOCOL")
-    if "messages" not in st.session_state: st.session_state.messages = []
+st.title("AEGIS: FRIDAY PROTOCOL")
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]):
+        if m["type"] == "text": st.markdown(m["content"])
+        else: st.image(m["content"])
 
-    for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            if m["type"] == "text": st.markdown(m["content"])
-            else: st.image(m["content"])
+if prompt := st.chat_input("Command FRIDAY..."):
+    st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
+    with st.chat_message("user"): st.markdown(prompt)
 
-    if prompt := st.chat_input("Command FRIDAY..."):
-        st.components.v1.html("<script>window.speechSynthesis.cancel();</script>", height=0)
-        st.session_state.messages.append({"role": "user", "type": "text", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            # A. Visualizer
+    with st.chat_message("assistant"):
+        with st.spinner("Processing..."):
+            # 1. Check for Image Requests
             if any(k in prompt.lower() for k in ["draw", "visualize", "image"]):
                 if openai_client:
-                    with st.spinner("Rendering..."):
-                        try:
-                            res = openai_client.images.generate(model="dall-e-3", prompt=prompt)
-                            url = res.data[0].url
-                            st.image(url)
-                            st.session_state.messages.append({"role": "assistant", "type": "image", "content": url})
-                            speak("Task complete.")
-                        except: st.error("Graphic drivers offline.")
+                    try:
+                        res = openai_client.images.generate(model="dall-e-3", prompt=prompt)
+                        url = res.data[0].url
+                        st.image(url)
+                        st.session_state.messages.append({"role": "assistant", "type": "image", "content": url})
+                    except: st.error("Graphic link failed.")
                 else: st.warning("Visualizer offline.")
             
-            # B. Neural Link (Conversation + Memory)
+            # 2. General Conversation with Memory
             else:
-                with st.spinner("Processing..."):
-                    # Web search attempt
-                    search_result = tools.web_search(prompt)
-                    
-                    # Create memory history
-                    history = [{"role": "system", "content": "You are FRIDAY. Be witty and call the user Boss."}]
-                    if "error" not in search_result.lower():
-                        history[0]["content"] += f" Satellite Context: {search_result}"
-                    
-                    for m in st.session_state.messages:
-                        if m["type"] == "text":
-                            history.append({"role": m["role"], "content": m["content"]})
-                    
-                    try:
-                        ans = client.chat.completions.create(model="llama-3.1-8b-instant", messages=history).choices[0].message.content
-                        st.markdown(ans); speak(ans)
-                        st.session_state.messages.append({"role": "assistant", "type": "text", "content": ans})
-                    except Exception as e:
-                        st.error(f"Link failed: {e}")
+                search_context = tools.web_search(prompt)
+                history = [{"role": "system", "content": f"You are FRIDAY. Be witty and call the user Boss. Context: {search_context}"}]
+                for m in st.session_state.messages:
+                    if m["type"] == "text": history.append({"role": m["role"], "content": m["content"]})
+                
+                ans = client.chat.completions.create(model="llama-3.1-8b-instant", messages=history).choices[0].message.content
+                st.markdown(ans); speak(ans)
+                st.session_state.messages.append({"role": "assistant", "type": "text", "content": ans})
